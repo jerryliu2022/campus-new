@@ -1,0 +1,61 @@
+{
+  "project": "岳阳学院",
+  "retrieved_at": "2026-09-08",
+  "verified_facts": {
+    "location": "岳阳市南湖新区龙山南麓、黄梅港西部，北抵赶山路、西临东坡路、南至樊陈路、东达郭麻路",
+    "total_planned_area_mu": 1565,
+    "total_planned_floor_area_m2": 518800,
+    "planned_students": 15000,
+    "phase_1_net_land_area_m2": 281809.42,
+    "phase_1_total_floor_area_m2": 255079.163,
+    "overall_planning_land_area_m2": 362272,
+    "phase_1_building_program": "1#图书馆；2#、3#教学楼；4#实验综合楼；5#、6#实验楼；7#实训实习楼；8#会堂；9#综合服务楼；10#风雨操场；11#食堂和活动中心；12#至17#宿舍楼；18#主大门；19#、20#门卫；24#看台及地下车库"
+  },
+  "sources": [
+    {
+      "title": "年度精品工程丨岳阳学院项目一期",
+      "publisher": "岳阳市城乡建设协会 / 岳阳建筑信息网",
+      "published": "2024-06-05",
+      "url": "https://www.yycxjs.cn/news/info/3bc7cdbbb10e4f50a5d1c62637fc1a55",
+      "usage": "一期单体编号与建成外观；中央高层、弧形综合体、对称教学实验楼实景",
+      "local_assets": ["public/assets/official/annual_project_01.png", "public/assets/official/annual_project_02.png"],
+      "evidence_type": "建成实景"
+    },
+    {
+      "title": "岳阳学院项目修建性详细规划及建筑设计方案变更批前公示",
+      "publisher": "岳阳市人民政府 / 岳阳市自然资源和规划部门",
+      "published": "2024-03-11",
+      "usage": "总体规划和建筑设计变更依据",
+      "evidence_type": "规划审批"
+    },
+    {
+      "title": "岳阳学院项目新增配套用房修建性详细规划及建筑方案批前公示",
+      "publisher": "岳阳市自然资源和规划局",
+      "published": "2023-11-06",
+      "usage": "配套用房建模依据",
+      "evidence_type": "规划审批"
+    },
+    {
+      "title": "封顶！岳阳学院建设迎来新进展",
+      "publisher": "岳阳市城投集团",
+      "published": "2023-05-06",
+      "usage": "项目总尺度、办学规模和效果图依据",
+      "evidence_type": "建设进展与效果图"
+    },
+    {
+      "title": "岳阳学院项目（二期）环评文件拟审批公示",
+      "publisher": "南湖新区政府门户网",
+      "published": "2024-01-30",
+      "usage": "项目四至和二期范围依据",
+      "evidence_type": "环评审批"
+    },
+    {
+      "title": "岳阳学院（一期）项目规划公示",
+      "publisher": "岳阳市自然资源和规划部门 / 岳阳日报客户端转载",
+      "published": "2022-01-12",
+      "usage": "一期用地与建筑面积依据",
+      "evidence_type": "规划公示"
+    }
+  ],
+  "modeling_limit": "公开资料能够约束项目边界、规模和总体规划；单栋建筑的精确竣工尺寸、室内房间和隐蔽区域仍需竣工图或测绘数据。"
+}

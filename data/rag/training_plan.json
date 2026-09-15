@@ -1,0 +1,241 @@
+{
+ "major": "计算机科学与技术（2025级）",
+ "term": {
+  "name": "2026-2027学年第一学期",
+  "start": "2026-09-07",
+  "weeks": 16,
+  "grade": "2025级",
+  "term": "大二上学期（第 3 学期）",
+  "entrance": "2025年秋季入学",
+  "national_day_split": "2026-10-01"
+ },
+ "required": [
+  {
+   "course": "数据结构",
+   "credit": 4,
+   "teacher": "周启明",
+   "weekly_sessions": 2,
+   "venue": "教学楼教室"
+  },
+  {
+   "course": "计算机组成原理",
+   "credit": 4,
+   "teacher": "吴子昂",
+   "weekly_sessions": 2,
+   "venue": "教学楼教室"
+  },
+  {
+   "course": "离散数学",
+   "credit": 3,
+   "teacher": "陈若愚",
+   "weekly_sessions": 2,
+   "venue": "教学楼教室"
+  },
+  {
+   "course": "概率论与数理统计",
+   "credit": 3,
+   "teacher": "林慕清",
+   "weekly_sessions": 2,
+   "venue": "教学楼教室"
+  },
+  {
+   "course": "数据库原理",
+   "credit": 3,
+   "teacher": "韩雪",
+   "weekly_sessions": 2,
+   "venue": "教学楼教室"
+  },
+  {
+   "course": "大学英语IV",
+   "credit": 2,
+   "teacher": "沈悦",
+   "weekly_sessions": 2,
+   "venue": "教学楼教室"
+  },
+  {
+   "course": "体育IV",
+   "credit": 1,
+   "teacher": "李劲松",
+   "weekly_sessions": 1,
+   "venue": "田径场"
+  },
+  {
+   "course": "形势与政策",
+   "credit": 1,
+   "teacher": "秦岚",
+   "weekly_sessions": 1,
+   "venue": "教学楼教室"
+  }
+ ],
+ "elective_pool": [
+  {
+   "course": "人工智能导论",
+   "credit": 2,
+   "teacher": "许志远"
+  },
+  {
+   "course": "Web前端开发",
+   "credit": 2,
+   "teacher": "苏婉"
+  },
+  {
+   "course": "Python数据分析",
+   "credit": 2,
+   "teacher": "程立"
+  },
+  {
+   "course": "移动应用开发",
+   "credit": 2,
+   "teacher": "孟子航"
+  },
+  {
+   "course": "网络安全导论",
+   "credit": 2,
+   "teacher": "欧阳振峰"
+  },
+  {
+   "course": "软件测试基础",
+   "credit": 2,
+   "teacher": "唐笑笑"
+  }
+ ],
+ "elective_plan": {
+  "计科1班": [
+   "人工智能导论",
+   "Web前端开发"
+  ],
+  "计科2班": [
+   "Python数据分析",
+   "移动应用开发"
+  ],
+  "计科3班": [
+   "网络安全导论",
+   "软件测试基础"
+  ],
+  "计科4班": [
+   "人工智能导论",
+   "Python数据分析"
+  ],
+  "计科5班": [
+   "Web前端开发",
+   "移动应用开发"
+  ],
+  "计科6班": [
+   "网络安全导论",
+   "人工智能导论"
+  ]
+ },
+ "total_credits_per_class": 25,
+ "counselors": [
+  {
+   "name": "刘敏",
+   "classes": [
+    "计科1班",
+    "计科2班",
+    "计科3班"
+   ],
+   "phone": "13707300001"
+  },
+  {
+   "name": "王建国",
+   "classes": [
+    "计科4班",
+    "计科5班",
+    "计科6班"
+   ],
+   "phone": "13707300002"
+  }
+ ],
+ "dorm_allocation": {
+  "计科1班": {
+   "building": "B11",
+   "rooms": [
+    "B11_CR_F1_101",
+    "B11_CR_F1_102",
+    "B11_CR_F1_103",
+    "B11_CR_F1_104",
+    "B11_CR_F1_105",
+    "B11_CR_F2_101",
+    "B11_CR_F2_102",
+    "B11_CR_F2_103",
+    "B11_CR_F2_104",
+    "B11_CR_F2_105"
+   ]
+  },
+  "计科2班": {
+   "building": "B12",
+   "rooms": [
+    "B12_CR_F1_101",
+    "B12_CR_F1_102",
+    "B12_CR_F1_103",
+    "B12_CR_F1_104",
+    "B12_CR_F1_105",
+    "B12_CR_F2_101",
+    "B12_CR_F2_102",
+    "B12_CR_F2_103",
+    "B12_CR_F2_104",
+    "B12_CR_F2_105"
+   ]
+  },
+  "计科3班": {
+   "building": "B13",
+   "rooms": [
+    "B13_CR_F1_101",
+    "B13_CR_F1_102",
+    "B13_CR_F1_103",
+    "B13_CR_F1_104",
+    "B13_CR_F1_105",
+    "B13_CR_F2_101",
+    "B13_CR_F2_102",
+    "B13_CR_F2_103",
+    "B13_CR_F2_104",
+    "B13_CR_F2_105"
+   ]
+  },
+  "计科4班": {
+   "building": "B14",
+   "rooms": [
+    "B14_CR_F1_101",
+    "B14_CR_F1_102",
+    "B14_CR_F1_103",
+    "B14_CR_F1_104",
+    "B14_CR_F1_105",
+    "B14_CR_F2_101",
+    "B14_CR_F2_102",
+    "B14_CR_F2_103",
+    "B14_CR_F2_104",
+    "B14_CR_F2_105"
+   ]
+  },
+  "计科5班": {
+   "building": "B15",
+   "rooms": [
+    "B15_CR_F1_101",
+    "B15_CR_F1_102",
+    "B15_CR_F1_103",
+    "B15_CR_F1_104",
+    "B15_CR_F1_105",
+    "B15_CR_F2_101",
+    "B15_CR_F2_102",
+    "B15_CR_F2_103",
+    "B15_CR_F2_104",
+    "B15_CR_F2_105"
+   ]
+  },
+  "计科6班": {
+   "building": "B16",
+   "rooms": [
+    "B16_CR_F1_101",
+    "B16_CR_F1_102",
+    "B16_CR_F1_103",
+    "B16_CR_F1_104",
+    "B16_CR_F1_105",
+    "B16_CR_F2_101",
+    "B16_CR_F2_102",
+    "B16_CR_F2_103",
+    "B16_CR_F2_104",
+    "B16_CR_F2_105"
+   ]
+  }
+ }
+}

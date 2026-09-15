@@ -1,0 +1,448 @@
+{
+  "coordinate_system": {
+    "unit": "meter",
+    "up_axis": "Y",
+    "origin": "campus_geographic_center",
+    "north_axis": "+Z",
+    "model_extent_m": [528, 427],
+    "spawn": [0, 2, -188]
+  },
+  "source_views": [
+    "01_南向主轴",
+    "02_西北组团",
+    "03_西南运动区",
+    "04_东南广角",
+    "05_东侧教学组",
+    "06_东北院落",
+    "07_南向全景",
+    "08_中轴左侧",
+    "09_中轴右侧",
+    "10_运动场入口",
+    "11_运动场近景",
+    "12_文化核心",
+    "13_西北湖山",
+    "14_东南教学组",
+    "15_中轴远景",
+    "16_南向偏东"
+  ],
+  "regions": {
+    "south_entry": {
+      "label": "南校门与主轴",
+      "anchor": [
+        0,
+        -168
+      ]
+    },
+    "central_axis": {
+      "label": "中央主轴",
+      "anchor": [
+        0,
+        -12
+      ]
+    },
+    "cultural_core": {
+      "label": "北侧弧形文化核心",
+      "anchor": [
+        0,
+        82
+      ]
+    },
+    "sports_west": {
+      "label": "西南运动区",
+      "anchor": [
+        -149,
+        58
+      ]
+    },
+    "academic_east": {
+      "label": "东侧学术组团",
+      "anchor": [
+        137,
+        60
+      ]
+    },
+    "academic_northwest": {
+      "label": "西北教学组团",
+      "anchor": [
+        -72,
+        137
+      ]
+    },
+    "lake_hill": {
+      "label": "北侧湖泊山体",
+      "anchor": [
+        149,
+        137
+      ]
+    }
+  },
+  "buildings": [
+    {
+      "id": "B01",
+      "name": "2#教学楼",
+      "type": "CR",
+      "region": "central_axis",
+      "x": -58,
+      "z": -125,
+      "w": 40,
+      "d": 26,
+      "h": 22,
+      "floors": 5,
+      "color": "#dbe0df",
+      "accent": "#8cb6bd",
+      "shape": "u"
+    },
+    {
+      "id": "B02",
+      "name": "3#教学楼",
+      "type": "CR",
+      "region": "central_axis",
+      "x": 58,
+      "z": -125,
+      "w": 40,
+      "d": 26,
+      "h": 22,
+      "floors": 5,
+      "color": "#dbe0df",
+      "accent": "#8cb6bd",
+      "shape": "u"
+    },
+    {
+      "id": "B03",
+      "name": "5#实验楼",
+      "type": "LB",
+      "region": "central_axis",
+      "x": -58,
+      "z": -67,
+      "w": 40,
+      "d": 26,
+      "h": 22,
+      "floors": 5,
+      "color": "#d4dcdc",
+      "accent": "#70a9bb",
+      "shape": "u"
+    },
+    {
+      "id": "B04",
+      "name": "6#实验楼",
+      "type": "LB",
+      "region": "central_axis",
+      "x": 58,
+      "z": -67,
+      "w": 40,
+      "d": 26,
+      "h": 22,
+      "floors": 5,
+      "color": "#d4dcdc",
+      "accent": "#70a9bb",
+      "shape": "u"
+    },
+    {
+      "id": "B05",
+      "name": "4#实验综合楼",
+      "type": "LB",
+      "region": "central_axis",
+      "x": 0,
+      "z": -10,
+      "w": 51,
+      "d": 33,
+      "h": 40,
+      "floors": 9,
+      "color": "#bfc9cb",
+      "accent": "#5f8998",
+      "shape": "tower"
+    },
+    {
+      "id": "B06",
+      "name": "1#图书馆",
+      "type": "LIB",
+      "region": "cultural_core",
+      "x": 0,
+      "z": 70,
+      "w": 95,
+      "d": 31,
+      "h": 16,
+      "floors": 4,
+      "color": "#e7e2d7",
+      "accent": "#d29c45",
+      "shape": "arc"
+    },
+    {
+      "id": "B07",
+      "name": "9#综合服务楼",
+      "type": "OTH",
+      "region": "cultural_core",
+      "x": 53,
+      "z": 101,
+      "w": 42,
+      "d": 22,
+      "h": 12,
+      "floors": 2,
+      "color": "#e9e2d4",
+      "accent": "#d7a74f",
+      "shape": "rect"
+    },
+    {
+      "id": "B08",
+      "name": "8#会堂",
+      "type": "GYM",
+      "region": "sports_west",
+      "x": -154,
+      "z": 98,
+      "w": 62,
+      "d": 37,
+      "h": 13,
+      "floors": 2,
+      "color": "#e3e8e4",
+      "accent": "#e68b75",
+      "shape": "rect"
+    },
+    {
+      "id": "B09",
+      "name": "11#食堂和活动中心",
+      "type": "CANT",
+      "region": "sports_west",
+      "x": -156,
+      "z": 22,
+      "w": 46,
+      "d": 26,
+      "h": 12,
+      "floors": 2,
+      "color": "#dce2de",
+      "accent": "#df867a",
+      "shape": "rect"
+    },
+    {
+      "id": "B10",
+      "name": "24#看台及地下车库",
+      "type": "OTH",
+      "region": "sports_west",
+      "x": -91,
+      "z": 94,
+      "w": 29,
+      "d": 18,
+      "h": 10,
+      "floors": 2,
+      "color": "#d9dedc",
+      "accent": "#a8bfc1",
+      "shape": "rect"
+    },
+    {
+      "id": "B11",
+      "name": "12#学生宿舍",
+      "type": "DOR",
+      "region": "academic_east",
+      "x": 118,
+      "z": 34,
+      "w": 40,
+      "d": 26,
+      "h": 17,
+      "floors": 4,
+      "color": "#d9dedc",
+      "accent": "#6f9eae",
+      "shape": "rect"
+    },
+    {
+      "id": "B12",
+      "name": "13#学生宿舍",
+      "type": "DOR",
+      "region": "academic_east",
+      "x": 182,
+      "z": 34,
+      "w": 40,
+      "d": 26,
+      "h": 17,
+      "floors": 4,
+      "color": "#d6dcdb",
+      "accent": "#6f9eae",
+      "shape": "rect"
+    },
+    {
+      "id": "B13",
+      "name": "14#学生宿舍",
+      "type": "DOR",
+      "region": "academic_east",
+      "x": 118,
+      "z": 86,
+      "w": 40,
+      "d": 26,
+      "h": 18,
+      "floors": 4,
+      "color": "#d0d9d9",
+      "accent": "#7caab7",
+      "shape": "rect"
+    },
+    {
+      "id": "B14",
+      "name": "15#学生宿舍",
+      "type": "DOR",
+      "region": "academic_east",
+      "x": 182,
+      "z": 86,
+      "w": 40,
+      "d": 26,
+      "h": 18,
+      "floors": 4,
+      "color": "#d0d9d9",
+      "accent": "#7caab7",
+      "shape": "rect"
+    },
+    {
+      "id": "B15",
+      "name": "16#学生宿舍",
+      "type": "DOR",
+      "region": "academic_east",
+      "x": 125,
+      "z": 137,
+      "w": 44,
+      "d": 26,
+      "h": 17,
+      "floors": 4,
+      "color": "#d9dedc",
+      "accent": "#709ead",
+      "shape": "rect"
+    },
+    {
+      "id": "B16",
+      "name": "17#学生宿舍",
+      "type": "DOR",
+      "region": "academic_northwest",
+      "x": -108,
+      "z": 134,
+      "w": 40,
+      "d": 24,
+      "h": 17,
+      "floors": 4,
+      "color": "#d9dfdf",
+      "accent": "#79aeb7",
+      "shape": "rect"
+    },
+    {
+      "id": "B17",
+      "name": "7#实训实习楼 A",
+      "type": "LB",
+      "region": "academic_northwest",
+      "x": -48,
+      "z": 139,
+      "w": 42,
+      "d": 24,
+      "h": 17,
+      "floors": 4,
+      "color": "#d9dfdf",
+      "accent": "#79aeb7",
+      "shape": "rect"
+    },
+    {
+      "id": "B18",
+      "name": "7#实训实习楼 B",
+      "type": "LB",
+      "region": "sports_west",
+      "x": -210,
+      "z": 135,
+      "w": 40,
+      "d": 24,
+      "h": 21,
+      "floors": 6,
+      "color": "#cfd9d8",
+      "accent": "#80b696",
+      "shape": "rect"
+    },
+    {
+      "id": "B19",
+      "name": "学生宿舍东南 A",
+      "type": "DOR",
+      "region": "academic_east",
+      "x": 127,
+      "z": -79,
+      "w": 40,
+      "d": 24,
+      "h": 21,
+      "floors": 6,
+      "color": "#cfd9d8",
+      "accent": "#80b696",
+      "shape": "rect"
+    },
+    {
+      "id": "B20",
+      "name": "学生宿舍东南 B",
+      "type": "DOR",
+      "region": "academic_east",
+      "x": 187,
+      "z": -79,
+      "w": 40,
+      "d": 24,
+      "h": 21,
+      "floors": 6,
+      "color": "#cfd9d8",
+      "accent": "#80b696",
+      "shape": "rect"
+    },
+    {
+      "id": "B21",
+      "name": "10#风雨操场",
+      "type": "GYM",
+      "region": "sports_west",
+      "x": -148,
+      "z": -88,
+      "w": 53,
+      "d": 26,
+      "h": 12,
+      "floors": 2,
+      "color": "#e3d6c1",
+      "accent": "#d28d51",
+      "shape": "rect"
+    }
+  ],
+  "landmarks": [
+    {
+      "id": "sports_field",
+      "name": "400米跑道与足球场",
+      "x": -174,
+      "z": -35,
+      "kind": "track"
+    },
+    {
+      "id": "basketball_courts",
+      "name": "篮球场组团",
+      "x": -215,
+      "z": 20,
+      "kind": "courts"
+    },
+    {
+      "id": "north_lake",
+      "name": "北侧湖泊",
+      "x": 173,
+      "z": 149,
+      "kind": "lake"
+    },
+    {
+      "id": "north_hill",
+      "name": "北侧山林",
+      "x": 168,
+      "z": 185,
+      "kind": "hill"
+    },
+    {
+      "id": "east_channel",
+      "name": "东缘水渠",
+      "x": 235,
+      "z": 72,
+      "kind": "channel"
+    },
+    {
+      "id": "golden_grove",
+      "name": "文化核心金色树阵",
+      "x": 0,
+      "z": 86,
+      "kind": "grove"
+    }
+  ],
+  "scale_basis": {
+    "phase_1_net_land_area_m2": 281809.42,
+    "modeled_core_extent_m": [
+      528,
+      427
+    ],
+    "derivation": "photo-relative layout scaled against published phase-1 land area; not a cadastral survey"
+  }
+}

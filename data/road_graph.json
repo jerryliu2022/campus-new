@@ -1,0 +1,2213 @@
+{
+  "coordinate_system": {
+    "unit": "meter",
+    "up_axis": "Y",
+    "origin": "campus_geographic_center",
+    "north_axis": "+Z",
+    "model_extent_m": [
+      528,
+      427
+    ],
+    "spawn": [
+      0,
+      2,
+      -188
+    ]
+  },
+  "source": "由 campus_layout.json 自动生成；A* 网格逐段避让建筑外扩 footprint",
+  "clearance_m": 3.2,
+  "nodes": [
+    {
+      "id": "gate",
+      "label": "南校门",
+      "position": [
+        0,
+        0,
+        -188
+      ],
+      "kind": "gate"
+    },
+    {
+      "id": "south",
+      "label": "南入口广场",
+      "position": [
+        0,
+        0,
+        -158
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "axisSouth",
+      "label": "南段中央主轴",
+      "position": [
+        0,
+        0,
+        -125
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "axisMid",
+      "label": "中段中央主轴",
+      "position": [
+        0,
+        0,
+        -67
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "plazaSouth",
+      "label": "实验综合楼南广场",
+      "position": [
+        0,
+        0,
+        -36
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "centralWest",
+      "label": "实验综合楼西侧",
+      "position": [
+        -36,
+        0,
+        -10
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "centralEast",
+      "label": "实验综合楼东侧",
+      "position": [
+        36,
+        0,
+        -10
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "plazaNorth",
+      "label": "实验综合楼北广场",
+      "position": [
+        0,
+        0,
+        26
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "libraryWest",
+      "label": "图书馆西环路",
+      "position": [
+        -58,
+        0,
+        70
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "libraryEast",
+      "label": "图书馆东环路",
+      "position": [
+        82,
+        0,
+        70
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "north",
+      "label": "北区中央路口",
+      "position": [
+        0,
+        0,
+        118
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "northWest",
+      "label": "西北教学组团路口",
+      "position": [
+        -82,
+        0,
+        118
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "northEast",
+      "label": "东北宿舍组团路口",
+      "position": [
+        88,
+        0,
+        118
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "westSouth",
+      "label": "西南生活区路口",
+      "position": [
+        -88,
+        0,
+        -122
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "westMid",
+      "label": "西侧林荫路",
+      "position": [
+        -88,
+        0,
+        -34
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "westNorth",
+      "label": "西北林荫路",
+      "position": [
+        -88,
+        0,
+        70
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "sportsSouth",
+      "label": "体育区南入口",
+      "position": [
+        -105,
+        0,
+        -92
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "sportsEast",
+      "label": "田径场东入口",
+      "position": [
+        -112,
+        0,
+        -35
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "sportsNorth",
+      "label": "体育区北入口",
+      "position": [
+        -112,
+        0,
+        22
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "eastSouth",
+      "label": "东南宿舍路口",
+      "position": [
+        88,
+        0,
+        -124
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "eastMid",
+      "label": "东侧主路",
+      "position": [
+        88,
+        0,
+        -34
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "eastAcademic",
+      "label": "东侧组团中路",
+      "position": [
+        88,
+        0,
+        60
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "eastOuterSouth",
+      "label": "东缘南路口",
+      "position": [
+        222,
+        0,
+        -120
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "eastOuterMid",
+      "label": "东缘中路口",
+      "position": [
+        222,
+        0,
+        32
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "eastOuterNorth",
+      "label": "东缘北路口",
+      "position": [
+        222,
+        0,
+        128
+      ],
+      "kind": "junction"
+    },
+    {
+      "id": "lake",
+      "label": "北侧湖畔节点",
+      "position": [
+        205,
+        0,
+        168
+      ],
+      "kind": "landmark"
+    },
+    {
+      "id": "hill",
+      "label": "北侧山林步道",
+      "position": [
+        148,
+        0,
+        188
+      ],
+      "kind": "landmark"
+    },
+    {
+      "id": "entry_B01",
+      "label": "2#教学楼入口",
+      "position": [
+        -58,
+        0,
+        -142.7
+      ],
+      "kind": "building_entry",
+      "building_id": "B01"
+    },
+    {
+      "id": "entry_B02",
+      "label": "3#教学楼入口",
+      "position": [
+        58,
+        0,
+        -142.7
+      ],
+      "kind": "building_entry",
+      "building_id": "B02"
+    },
+    {
+      "id": "entry_B03",
+      "label": "5#实验楼入口",
+      "position": [
+        -58,
+        0,
+        -84.7
+      ],
+      "kind": "building_entry",
+      "building_id": "B03"
+    },
+    {
+      "id": "entry_B04",
+      "label": "6#实验楼入口",
+      "position": [
+        58,
+        0,
+        -84.7
+      ],
+      "kind": "building_entry",
+      "building_id": "B04"
+    },
+    {
+      "id": "entry_B05",
+      "label": "4#实验综合楼入口",
+      "position": [
+        0,
+        0,
+        -31.2
+      ],
+      "kind": "building_entry",
+      "building_id": "B05"
+    },
+    {
+      "id": "entry_B06",
+      "label": "1#图书馆入口",
+      "position": [
+        0,
+        0,
+        49.8
+      ],
+      "kind": "building_entry",
+      "building_id": "B06"
+    },
+    {
+      "id": "entry_B07",
+      "label": "9#综合服务楼入口",
+      "position": [
+        53,
+        0,
+        85.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B07"
+    },
+    {
+      "id": "entry_B08",
+      "label": "8#会堂入口",
+      "position": [
+        -154,
+        0,
+        74.8
+      ],
+      "kind": "building_entry",
+      "building_id": "B08"
+    },
+    {
+      "id": "entry_B09",
+      "label": "11#食堂和活动中心入口",
+      "position": [
+        -156,
+        0,
+        4.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B09"
+    },
+    {
+      "id": "entry_B10",
+      "label": "24#看台及地下车库入口",
+      "position": [
+        -91,
+        0,
+        80.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B10"
+    },
+    {
+      "id": "entry_B11",
+      "label": "12#学生宿舍入口",
+      "position": [
+        118,
+        0,
+        16.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B11"
+    },
+    {
+      "id": "entry_B12",
+      "label": "13#学生宿舍入口",
+      "position": [
+        182,
+        0,
+        16.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B12"
+    },
+    {
+      "id": "entry_B13",
+      "label": "14#学生宿舍入口",
+      "position": [
+        118,
+        0,
+        68.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B13"
+    },
+    {
+      "id": "entry_B14",
+      "label": "15#学生宿舍入口",
+      "position": [
+        182,
+        0,
+        68.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B14"
+    },
+    {
+      "id": "entry_B15",
+      "label": "16#学生宿舍入口",
+      "position": [
+        125,
+        0,
+        119.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B15"
+    },
+    {
+      "id": "entry_B16",
+      "label": "17#学生宿舍入口",
+      "position": [
+        -108,
+        0,
+        117.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B16"
+    },
+    {
+      "id": "entry_B17",
+      "label": "7#实训实习楼 A入口",
+      "position": [
+        -48,
+        0,
+        122.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B17"
+    },
+    {
+      "id": "entry_B18",
+      "label": "7#实训实习楼 B入口",
+      "position": [
+        -210,
+        0,
+        118.3
+      ],
+      "kind": "building_entry",
+      "building_id": "B18"
+    },
+    {
+      "id": "entry_B19",
+      "label": "学生宿舍东南 A入口",
+      "position": [
+        127,
+        0,
+        -95.7
+      ],
+      "kind": "building_entry",
+      "building_id": "B19"
+    },
+    {
+      "id": "entry_B20",
+      "label": "学生宿舍东南 B入口",
+      "position": [
+        187,
+        0,
+        -95.7
+      ],
+      "kind": "building_entry",
+      "building_id": "B20"
+    },
+    {
+      "id": "entry_B21",
+      "label": "10#风雨操场入口",
+      "position": [
+        -148,
+        0,
+        -105.7
+      ],
+      "kind": "building_entry",
+      "building_id": "B21"
+    }
+  ],
+  "edges": [
+    {
+      "from": "gate",
+      "to": "south",
+      "distance_m": 30,
+      "travel_time_min": 0.42,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -188
+        ],
+        [
+          0,
+          0,
+          -158
+        ]
+      ]
+    },
+    {
+      "from": "south",
+      "to": "axisSouth",
+      "distance_m": 33,
+      "travel_time_min": 0.46,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -158
+        ],
+        [
+          0,
+          0,
+          -125
+        ]
+      ]
+    },
+    {
+      "from": "axisSouth",
+      "to": "axisMid",
+      "distance_m": 58,
+      "travel_time_min": 0.81,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -125
+        ],
+        [
+          0,
+          0,
+          -67
+        ]
+      ]
+    },
+    {
+      "from": "axisMid",
+      "to": "plazaSouth",
+      "distance_m": 31,
+      "travel_time_min": 0.43,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -67
+        ],
+        [
+          0,
+          0,
+          -36
+        ]
+      ]
+    },
+    {
+      "from": "plazaSouth",
+      "to": "centralWest",
+      "distance_m": 61.56,
+      "travel_time_min": 0.86,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -36
+        ],
+        [
+          -2,
+          0,
+          -35.5
+        ],
+        [
+          -36,
+          0,
+          -35.5
+        ],
+        [
+          -36,
+          0,
+          -10
+        ]
+      ]
+    },
+    {
+      "from": "plazaSouth",
+      "to": "centralEast",
+      "distance_m": 61.56,
+      "travel_time_min": 0.86,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -36
+        ],
+        [
+          2,
+          0,
+          -35.5
+        ],
+        [
+          36,
+          0,
+          -35.5
+        ],
+        [
+          36,
+          0,
+          -10
+        ]
+      ]
+    },
+    {
+      "from": "centralWest",
+      "to": "plazaNorth",
+      "distance_m": 71.56,
+      "travel_time_min": 0.99,
+      "indoor": false,
+      "geometry": [
+        [
+          -36,
+          0,
+          -10
+        ],
+        [
+          -34,
+          0,
+          -9.5
+        ],
+        [
+          -30,
+          0,
+          -9.5
+        ],
+        [
+          -30,
+          0,
+          10.5
+        ],
+        [
+          0,
+          0,
+          10.5
+        ],
+        [
+          0,
+          0,
+          26
+        ]
+      ]
+    },
+    {
+      "from": "centralEast",
+      "to": "plazaNorth",
+      "distance_m": 71.56,
+      "travel_time_min": 0.99,
+      "indoor": false,
+      "geometry": [
+        [
+          36,
+          0,
+          -10
+        ],
+        [
+          34,
+          0,
+          -9.5
+        ],
+        [
+          30,
+          0,
+          -9.5
+        ],
+        [
+          30,
+          0,
+          10.5
+        ],
+        [
+          0,
+          0,
+          10.5
+        ],
+        [
+          0,
+          0,
+          26
+        ]
+      ]
+    },
+    {
+      "from": "plazaNorth",
+      "to": "libraryWest",
+      "distance_m": 101.56,
+      "travel_time_min": 1.41,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          26
+        ],
+        [
+          -2,
+          0,
+          26.5
+        ],
+        [
+          -58,
+          0,
+          26.5
+        ],
+        [
+          -58,
+          0,
+          70
+        ]
+      ]
+    },
+    {
+      "from": "plazaNorth",
+      "to": "libraryEast",
+      "distance_m": 125.56,
+      "travel_time_min": 1.74,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          26
+        ],
+        [
+          2,
+          0,
+          26.5
+        ],
+        [
+          82,
+          0,
+          26.5
+        ],
+        [
+          82,
+          0,
+          70
+        ]
+      ]
+    },
+    {
+      "from": "libraryWest",
+      "to": "north",
+      "distance_m": 105.56,
+      "travel_time_min": 1.47,
+      "indoor": false,
+      "geometry": [
+        [
+          -58,
+          0,
+          70
+        ],
+        [
+          -56,
+          0,
+          70.5
+        ],
+        [
+          -52,
+          0,
+          70.5
+        ],
+        [
+          -52,
+          0,
+          90.5
+        ],
+        [
+          0,
+          0,
+          90.5
+        ],
+        [
+          0,
+          0,
+          118
+        ]
+      ]
+    },
+    {
+      "from": "libraryEast",
+      "to": "north",
+      "distance_m": 129.56,
+      "travel_time_min": 1.8,
+      "indoor": false,
+      "geometry": [
+        [
+          82,
+          0,
+          70
+        ],
+        [
+          80,
+          0,
+          70.5
+        ],
+        [
+          78,
+          0,
+          70.5
+        ],
+        [
+          78,
+          0,
+          116.5
+        ],
+        [
+          0,
+          0,
+          116.5
+        ],
+        [
+          0,
+          0,
+          118
+        ]
+      ]
+    },
+    {
+      "from": "north",
+      "to": "northWest",
+      "distance_m": 82.12,
+      "travel_time_min": 1.14,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          118
+        ],
+        [
+          -2,
+          0,
+          118.5
+        ],
+        [
+          -80,
+          0,
+          118.5
+        ],
+        [
+          -82,
+          0,
+          118
+        ]
+      ]
+    },
+    {
+      "from": "north",
+      "to": "northEast",
+      "distance_m": 88.12,
+      "travel_time_min": 1.22,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          118
+        ],
+        [
+          2,
+          0,
+          118.5
+        ],
+        [
+          86,
+          0,
+          118.5
+        ],
+        [
+          88,
+          0,
+          118
+        ]
+      ]
+    },
+    {
+      "from": "axisSouth",
+      "to": "westSouth",
+      "distance_m": 120.56,
+      "travel_time_min": 1.67,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -125
+        ],
+        [
+          -2,
+          0,
+          -125.5
+        ],
+        [
+          -34,
+          0,
+          -125.5
+        ],
+        [
+          -34,
+          0,
+          -107.5
+        ],
+        [
+          -88,
+          0,
+          -107.5
+        ],
+        [
+          -88,
+          0,
+          -122
+        ]
+      ]
+    },
+    {
+      "from": "westSouth",
+      "to": "westMid",
+      "distance_m": 88,
+      "travel_time_min": 1.22,
+      "indoor": false,
+      "geometry": [
+        [
+          -88,
+          0,
+          -122
+        ],
+        [
+          -88,
+          0,
+          -34
+        ]
+      ]
+    },
+    {
+      "from": "westMid",
+      "to": "westNorth",
+      "distance_m": 104,
+      "travel_time_min": 1.44,
+      "indoor": false,
+      "geometry": [
+        [
+          -88,
+          0,
+          -34
+        ],
+        [
+          -88,
+          0,
+          70
+        ]
+      ]
+    },
+    {
+      "from": "westNorth",
+      "to": "northWest",
+      "distance_m": 73.56,
+      "travel_time_min": 1.02,
+      "indoor": false,
+      "geometry": [
+        [
+          -88,
+          0,
+          70
+        ],
+        [
+          -86,
+          0,
+          70.5
+        ],
+        [
+          -82,
+          0,
+          70.5
+        ],
+        [
+          -82,
+          0,
+          80.5
+        ],
+        [
+          -72,
+          0,
+          80.5
+        ],
+        [
+          -72,
+          0,
+          106.5
+        ],
+        [
+          -82,
+          0,
+          106.5
+        ],
+        [
+          -82,
+          0,
+          118
+        ]
+      ]
+    },
+    {
+      "from": "westSouth",
+      "to": "sportsSouth",
+      "distance_m": 45.86,
+      "travel_time_min": 0.64,
+      "indoor": false,
+      "geometry": [
+        [
+          -88,
+          0,
+          -122
+        ],
+        [
+          -90,
+          0,
+          -121.5
+        ],
+        [
+          -104,
+          0,
+          -121.5
+        ],
+        [
+          -104,
+          0,
+          -93.5
+        ],
+        [
+          -105,
+          0,
+          -92
+        ]
+      ]
+    },
+    {
+      "from": "sportsSouth",
+      "to": "sportsEast",
+      "distance_m": 63.62,
+      "travel_time_min": 0.88,
+      "indoor": false,
+      "geometry": [
+        [
+          -105,
+          0,
+          -92
+        ],
+        [
+          -106,
+          0,
+          -91.5
+        ],
+        [
+          -112,
+          0,
+          -91.5
+        ],
+        [
+          -112,
+          0,
+          -35
+        ]
+      ]
+    },
+    {
+      "from": "sportsEast",
+      "to": "sportsNorth",
+      "distance_m": 57,
+      "travel_time_min": 0.79,
+      "indoor": false,
+      "geometry": [
+        [
+          -112,
+          0,
+          -35
+        ],
+        [
+          -112,
+          0,
+          22
+        ]
+      ]
+    },
+    {
+      "from": "sportsNorth",
+      "to": "westNorth",
+      "distance_m": 71.56,
+      "travel_time_min": 0.99,
+      "indoor": false,
+      "geometry": [
+        [
+          -112,
+          0,
+          22
+        ],
+        [
+          -110,
+          0,
+          22.5
+        ],
+        [
+          -88,
+          0,
+          22.5
+        ],
+        [
+          -88,
+          0,
+          70
+        ]
+      ]
+    },
+    {
+      "from": "axisSouth",
+      "to": "eastSouth",
+      "distance_m": 122.56,
+      "travel_time_min": 1.7,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -125
+        ],
+        [
+          2,
+          0,
+          -125.5
+        ],
+        [
+          34,
+          0,
+          -125.5
+        ],
+        [
+          34,
+          0,
+          -107.5
+        ],
+        [
+          88,
+          0,
+          -107.5
+        ],
+        [
+          88,
+          0,
+          -124
+        ]
+      ]
+    },
+    {
+      "from": "eastSouth",
+      "to": "eastMid",
+      "distance_m": 90,
+      "travel_time_min": 1.25,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          -124
+        ],
+        [
+          88,
+          0,
+          -34
+        ]
+      ]
+    },
+    {
+      "from": "eastMid",
+      "to": "eastAcademic",
+      "distance_m": 94,
+      "travel_time_min": 1.31,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          -34
+        ],
+        [
+          88,
+          0,
+          60
+        ]
+      ]
+    },
+    {
+      "from": "eastAcademic",
+      "to": "northEast",
+      "distance_m": 58,
+      "travel_time_min": 0.81,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          60
+        ],
+        [
+          88,
+          0,
+          118
+        ]
+      ]
+    },
+    {
+      "from": "eastSouth",
+      "to": "eastOuterSouth",
+      "distance_m": 137.56,
+      "travel_time_min": 1.91,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          -124
+        ],
+        [
+          90,
+          0,
+          -123.5
+        ],
+        [
+          222,
+          0,
+          -123.5
+        ],
+        [
+          222,
+          0,
+          -120
+        ]
+      ]
+    },
+    {
+      "from": "eastOuterSouth",
+      "to": "eastOuterMid",
+      "distance_m": 152,
+      "travel_time_min": 2.11,
+      "indoor": false,
+      "geometry": [
+        [
+          222,
+          0,
+          -120
+        ],
+        [
+          222,
+          0,
+          32
+        ]
+      ]
+    },
+    {
+      "from": "eastOuterMid",
+      "to": "eastOuterNorth",
+      "distance_m": 96,
+      "travel_time_min": 1.33,
+      "indoor": false,
+      "geometry": [
+        [
+          222,
+          0,
+          32
+        ],
+        [
+          222,
+          0,
+          128
+        ]
+      ]
+    },
+    {
+      "from": "eastOuterNorth",
+      "to": "northEast",
+      "distance_m": 144.56,
+      "travel_time_min": 2.01,
+      "indoor": false,
+      "geometry": [
+        [
+          222,
+          0,
+          128
+        ],
+        [
+          220,
+          0,
+          128.5
+        ],
+        [
+          152,
+          0,
+          128.5
+        ],
+        [
+          152,
+          0,
+          120.5
+        ],
+        [
+          88,
+          0,
+          120.5
+        ],
+        [
+          88,
+          0,
+          118
+        ]
+      ]
+    },
+    {
+      "from": "eastOuterNorth",
+      "to": "lake",
+      "distance_m": 55.86,
+      "travel_time_min": 0.78,
+      "indoor": false,
+      "geometry": [
+        [
+          222,
+          0,
+          128
+        ],
+        [
+          220,
+          0,
+          128.5
+        ],
+        [
+          206,
+          0,
+          128.5
+        ],
+        [
+          206,
+          0,
+          166.5
+        ],
+        [
+          205,
+          0,
+          168
+        ]
+      ]
+    },
+    {
+      "from": "lake",
+      "to": "hill",
+      "distance_m": 76.62,
+      "travel_time_min": 1.06,
+      "indoor": false,
+      "geometry": [
+        [
+          205,
+          0,
+          168
+        ],
+        [
+          204,
+          0,
+          168.5
+        ],
+        [
+          148,
+          0,
+          168.5
+        ],
+        [
+          148,
+          0,
+          188
+        ]
+      ]
+    },
+    {
+      "from": "hill",
+      "to": "northEast",
+      "distance_m": 130.56,
+      "travel_time_min": 1.81,
+      "indoor": false,
+      "geometry": [
+        [
+          148,
+          0,
+          188
+        ],
+        [
+          146,
+          0,
+          188.5
+        ],
+        [
+          88,
+          0,
+          188.5
+        ],
+        [
+          88,
+          0,
+          118
+        ]
+      ]
+    },
+    {
+      "from": "eastMid",
+      "to": "eastOuterMid",
+      "distance_m": 199.56,
+      "travel_time_min": 2.77,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          -34
+        ],
+        [
+          90,
+          0,
+          -33.5
+        ],
+        [
+          222,
+          0,
+          -33.5
+        ],
+        [
+          222,
+          0,
+          32
+        ]
+      ]
+    },
+    {
+      "from": "eastAcademic",
+      "to": "eastOuterMid",
+      "distance_m": 162.56,
+      "travel_time_min": 2.26,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          60
+        ],
+        [
+          90,
+          0,
+          60.5
+        ],
+        [
+          222,
+          0,
+          60.5
+        ],
+        [
+          222,
+          0,
+          32
+        ]
+      ]
+    },
+    {
+      "from": "westSouth",
+      "to": "entry_B01",
+      "distance_m": 51.26,
+      "travel_time_min": 0.71,
+      "indoor": false,
+      "geometry": [
+        [
+          -88,
+          0,
+          -122
+        ],
+        [
+          -86,
+          0,
+          -121.5
+        ],
+        [
+          -82,
+          0,
+          -121.5
+        ],
+        [
+          -82,
+          0,
+          -141.5
+        ],
+        [
+          -58,
+          0,
+          -141.5
+        ],
+        [
+          -58,
+          0,
+          -142.7
+        ]
+      ]
+    },
+    {
+      "from": "eastSouth",
+      "to": "entry_B02",
+      "distance_m": 49.26,
+      "travel_time_min": 0.68,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          -124
+        ],
+        [
+          86,
+          0,
+          -123.5
+        ],
+        [
+          82,
+          0,
+          -123.5
+        ],
+        [
+          82,
+          0,
+          -141.5
+        ],
+        [
+          58,
+          0,
+          -141.5
+        ],
+        [
+          58,
+          0,
+          -142.7
+        ]
+      ]
+    },
+    {
+      "from": "sportsSouth",
+      "to": "entry_B03",
+      "distance_m": 53.84,
+      "travel_time_min": 0.75,
+      "indoor": false,
+      "geometry": [
+        [
+          -105,
+          0,
+          -92
+        ],
+        [
+          -102,
+          0,
+          -91.5
+        ],
+        [
+          -58,
+          0,
+          -91.5
+        ],
+        [
+          -58,
+          0,
+          -84.7
+        ]
+      ]
+    },
+    {
+      "from": "eastSouth",
+      "to": "entry_B04",
+      "distance_m": 68.86,
+      "travel_time_min": 0.96,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          -124
+        ],
+        [
+          86,
+          0,
+          -123.5
+        ],
+        [
+          82,
+          0,
+          -123.5
+        ],
+        [
+          82,
+          0,
+          -107.5
+        ],
+        [
+          58,
+          0,
+          -107.5
+        ],
+        [
+          58,
+          0,
+          -84.7
+        ]
+      ]
+    },
+    {
+      "from": "plazaSouth",
+      "to": "entry_B05",
+      "distance_m": 4.8,
+      "travel_time_min": 0.07,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          -36
+        ],
+        [
+          0,
+          0,
+          -31.2
+        ]
+      ]
+    },
+    {
+      "from": "plazaNorth",
+      "to": "entry_B06",
+      "distance_m": 23.8,
+      "travel_time_min": 0.33,
+      "indoor": false,
+      "geometry": [
+        [
+          0,
+          0,
+          26
+        ],
+        [
+          0,
+          0,
+          49.8
+        ]
+      ]
+    },
+    {
+      "from": "libraryEast",
+      "to": "entry_B07",
+      "distance_m": 43.03,
+      "travel_time_min": 0.6,
+      "indoor": false,
+      "geometry": [
+        [
+          82,
+          0,
+          70
+        ],
+        [
+          80,
+          0,
+          70.5
+        ],
+        [
+          54,
+          0,
+          70.5
+        ],
+        [
+          54,
+          0,
+          82.5
+        ],
+        [
+          53,
+          0,
+          85.3
+        ]
+      ]
+    },
+    {
+      "from": "westNorth",
+      "to": "entry_B08",
+      "distance_m": 70.36,
+      "travel_time_min": 0.98,
+      "indoor": false,
+      "geometry": [
+        [
+          -88,
+          0,
+          70
+        ],
+        [
+          -90,
+          0,
+          70.5
+        ],
+        [
+          -154,
+          0,
+          70.5
+        ],
+        [
+          -154,
+          0,
+          74.8
+        ]
+      ]
+    },
+    {
+      "from": "sportsNorth",
+      "to": "entry_B09",
+      "distance_m": 62.07,
+      "travel_time_min": 0.86,
+      "indoor": false,
+      "geometry": [
+        [
+          -112,
+          0,
+          22
+        ],
+        [
+          -114,
+          0,
+          22.5
+        ],
+        [
+          -128,
+          0,
+          22.5
+        ],
+        [
+          -128,
+          0,
+          4.5
+        ],
+        [
+          -154,
+          0,
+          4.5
+        ],
+        [
+          -156,
+          0,
+          4.3
+        ]
+      ]
+    },
+    {
+      "from": "westNorth",
+      "to": "entry_B10",
+      "distance_m": 12.12,
+      "travel_time_min": 0.17,
+      "indoor": false,
+      "geometry": [
+        [
+          -88,
+          0,
+          70
+        ],
+        [
+          -90,
+          0,
+          70.5
+        ],
+        [
+          -90,
+          0,
+          78.5
+        ],
+        [
+          -91,
+          0,
+          80.3
+        ]
+      ]
+    },
+    {
+      "from": "eastAcademic",
+      "to": "entry_B11",
+      "distance_m": 74.07,
+      "travel_time_min": 1.03,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          60
+        ],
+        [
+          90,
+          0,
+          60.5
+        ],
+        [
+          94,
+          0,
+          60.5
+        ],
+        [
+          94,
+          0,
+          16.5
+        ],
+        [
+          116,
+          0,
+          16.5
+        ],
+        [
+          118,
+          0,
+          16.3
+        ]
+      ]
+    },
+    {
+      "from": "eastOuterMid",
+      "to": "entry_B12",
+      "distance_m": 56.07,
+      "travel_time_min": 0.78,
+      "indoor": false,
+      "geometry": [
+        [
+          222,
+          0,
+          32
+        ],
+        [
+          220,
+          0,
+          32.5
+        ],
+        [
+          206,
+          0,
+          32.5
+        ],
+        [
+          206,
+          0,
+          16.5
+        ],
+        [
+          184,
+          0,
+          16.5
+        ],
+        [
+          182,
+          0,
+          16.3
+        ]
+      ]
+    },
+    {
+      "from": "eastAcademic",
+      "to": "entry_B13",
+      "distance_m": 37.86,
+      "travel_time_min": 0.53,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          60
+        ],
+        [
+          90,
+          0,
+          60.5
+        ],
+        [
+          118,
+          0,
+          60.5
+        ],
+        [
+          118,
+          0,
+          68.3
+        ]
+      ]
+    },
+    {
+      "from": "eastOuterMid",
+      "to": "entry_B14",
+      "distance_m": 75.86,
+      "travel_time_min": 1.05,
+      "indoor": false,
+      "geometry": [
+        [
+          222,
+          0,
+          32
+        ],
+        [
+          220,
+          0,
+          32.5
+        ],
+        [
+          206,
+          0,
+          32.5
+        ],
+        [
+          206,
+          0,
+          50.5
+        ],
+        [
+          182,
+          0,
+          50.5
+        ],
+        [
+          182,
+          0,
+          68.3
+        ]
+      ]
+    },
+    {
+      "from": "northEast",
+      "to": "entry_B15",
+      "distance_m": 37.34,
+      "travel_time_min": 0.52,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          118
+        ],
+        [
+          90,
+          0,
+          118.5
+        ],
+        [
+          124,
+          0,
+          118.5
+        ],
+        [
+          125,
+          0,
+          119.3
+        ]
+      ]
+    },
+    {
+      "from": "northWest",
+      "to": "entry_B16",
+      "distance_m": 27.26,
+      "travel_time_min": 0.38,
+      "indoor": false,
+      "geometry": [
+        [
+          -82,
+          0,
+          118
+        ],
+        [
+          -84,
+          0,
+          118.5
+        ],
+        [
+          -108,
+          0,
+          118.5
+        ],
+        [
+          -108,
+          0,
+          117.3
+        ]
+      ]
+    },
+    {
+      "from": "northWest",
+      "to": "entry_B17",
+      "distance_m": 37.86,
+      "travel_time_min": 0.53,
+      "indoor": false,
+      "geometry": [
+        [
+          -82,
+          0,
+          118
+        ],
+        [
+          -80,
+          0,
+          118.5
+        ],
+        [
+          -48,
+          0,
+          118.5
+        ],
+        [
+          -48,
+          0,
+          122.3
+        ]
+      ]
+    },
+    {
+      "from": "northWest",
+      "to": "entry_B18",
+      "distance_m": 215.86,
+      "travel_time_min": 3,
+      "indoor": false,
+      "geometry": [
+        [
+          -82,
+          0,
+          118
+        ],
+        [
+          -84,
+          0,
+          118.5
+        ],
+        [
+          -118,
+          0,
+          118.5
+        ],
+        [
+          -118,
+          0,
+          74.5
+        ],
+        [
+          -210,
+          0,
+          74.5
+        ],
+        [
+          -210,
+          0,
+          118.3
+        ]
+      ]
+    },
+    {
+      "from": "eastSouth",
+      "to": "entry_B19",
+      "distance_m": 68.12,
+      "travel_time_min": 0.95,
+      "indoor": false,
+      "geometry": [
+        [
+          88,
+          0,
+          -124
+        ],
+        [
+          90,
+          0,
+          -123.5
+        ],
+        [
+          128,
+          0,
+          -123.5
+        ],
+        [
+          128,
+          0,
+          -97.5
+        ],
+        [
+          127,
+          0,
+          -95.7
+        ]
+      ]
+    },
+    {
+      "from": "eastOuterSouth",
+      "to": "entry_B20",
+      "distance_m": 58.12,
+      "travel_time_min": 0.81,
+      "indoor": false,
+      "geometry": [
+        [
+          222,
+          0,
+          -120
+        ],
+        [
+          220,
+          0,
+          -119.5
+        ],
+        [
+          188,
+          0,
+          -119.5
+        ],
+        [
+          188,
+          0,
+          -97.5
+        ],
+        [
+          187,
+          0,
+          -95.7
+        ]
+      ]
+    },
+    {
+      "from": "sportsSouth",
+      "to": "entry_B21",
+      "distance_m": 57.13,
+      "travel_time_min": 0.79,
+      "indoor": false,
+      "geometry": [
+        [
+          -105,
+          0,
+          -92
+        ],
+        [
+          -106,
+          0,
+          -91.5
+        ],
+        [
+          -118,
+          0,
+          -91.5
+        ],
+        [
+          -118,
+          0,
+          -105.5
+        ],
+        [
+          -146,
+          0,
+          -105.5
+        ],
+        [
+          -148,
+          0,
+          -105.7
+        ]
+      ]
+    }
+  ]
+}

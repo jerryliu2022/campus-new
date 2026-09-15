@@ -1,0 +1,16 @@
+{
+ "generated_at": "2026-09-09 14:45:46",
+ "students": 360,
+ "classes": 6,
+ "dorm_rooms": 60,
+ "schedule_rows": 96,
+ "violations": [],
+ "checks": {
+  "班级大节唯一": "PASS",
+  "教师大节唯一": "PASS",
+  "教室大节唯一": "PASS",
+  "宿舍容量≤6": "PASS",
+  "宿舍分性别": "PASS",
+  "宿舍房间已建模": "PASS"
+ }
+}

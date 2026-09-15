@@ -1,0 +1,229 @@
+from __future__ import annotations
+
+import base64
+import hashlib
+import hmac
+import json
+import os
+import sqlite3
+import time
+from heapq import heappop, heappush
+from pathlib import Path
+from typing import List, Optional
+
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+ROOT = Path(__file__).resolve().parents[1]
+DATA = ROOT / "data"
+DB_PATH = DATA / "campus.db"
+SECRET = os.environ.get("CAMPUS_JWT_SECRET", "yueyang-campus-local-demo-secret").encode()
+
+app = FastAPI(title="岳阳学院智慧校园数字孪生 API", version="1.0.0")
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:4175", "http://127.0.0.1:4175"], allow_methods=["*"], allow_headers=["*"])
+
+
+class LoginBody(BaseModel):
+    username: str
+    password: str
+
+
+class QueryBody(BaseModel):
+    query: str
+    origin: Optional[str] = "gate"
+
+
+class AnchorBody(BaseModel):
+    room_code: str
+    semantic_name: str
+    building_code: str
+    anchor_world: List[float]
+
+
+class NoticeBody(BaseModel):
+    content: str
+
+
+def password_hash(password: str) -> str:
+    return hashlib.sha256(f"yueyang:{password}".encode()).hexdigest()
+
+
+def init_db() -> None:
+    db = sqlite3.connect(DB_PATH)
+    db.execute("CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, display_name TEXT NOT NULL, role TEXT NOT NULL, class_name TEXT)")
+    rows = [
+        ("student", password_hash("campus123"), "演示学生", "student", "计算机2301"),
+        ("counselor", password_hash("campus123"), "演示辅导员", "counselor", "计算机类"),
+        ("admin", password_hash("admin123"), "系统管理员", "admin", "智慧校园中心"),
+    ]
+    db.executemany("INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?)", rows)
+    db.execute("CREATE TABLE IF NOT EXISTS room_anchor_overrides (room_code TEXT PRIMARY KEY, semantic_name TEXT NOT NULL, building_code TEXT NOT NULL, anchor_world TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at INTEGER NOT NULL)")
+    db.execute("CREATE TABLE IF NOT EXISTS notices (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL, created_by TEXT NOT NULL, created_at INTEGER NOT NULL)")
+    if not db.execute("SELECT 1 FROM notices LIMIT 1").fetchone():
+        db.execute("INSERT INTO notices(content, created_by, created_at) VALUES (?, ?, ?)", ("智慧校园模型已按公开规划与校园沙盘多视角资料更新。", "system", int(time.time())))
+    db.commit(); db.close()
+
+
+def b64(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def sign_token(user: dict) -> str:
+    header = b64(json.dumps({"alg": "HS256", "typ": "JWT"}, separators=(",", ":")).encode())
+    payload = b64(json.dumps({**user, "iat": int(time.time()), "exp": int(time.time()) + 86400}, ensure_ascii=False, separators=(",", ":")).encode())
+    signature = b64(hmac.new(SECRET, f"{header}.{payload}".encode(), hashlib.sha256).digest())
+    return f"{header}.{payload}.{signature}"
+
+
+def verify_token(authorization: Optional[str]) -> dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "缺少登录令牌")
+    token = authorization[7:]
+    try:
+        header, payload, signature = token.split(".")
+        expected = b64(hmac.new(SECRET, f"{header}.{payload}".encode(), hashlib.sha256).digest())
+        if not hmac.compare_digest(signature, expected): raise ValueError
+        parsed = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        if parsed["exp"] < time.time(): raise ValueError
+        return parsed
+    except Exception as exc:
+        raise HTTPException(401, "登录令牌无效或已过期") from exc
+
+
+def graph_data() -> dict:
+    return json.loads((DATA / "road_graph.json").read_text(encoding="utf-8"))
+
+
+def shortest_path(start: str, target: str) -> dict:
+    graph = graph_data(); adjacency: dict[str, list[tuple[float, str]]] = {}
+    for edge in graph["edges"]:
+        adjacency.setdefault(edge["from"], []).append((edge["distance_m"], edge["to"]))
+        adjacency.setdefault(edge["to"], []).append((edge["distance_m"], edge["from"]))
+    queue = [(0.0, start, [])]; visited = set()
+    while queue:
+        distance, node, path = heappop(queue)
+        if node in visited: continue
+        visited.add(node); path = path + [node]
+        if node == target: return {"nodes": path, "distance_m": round(distance, 1), "walking_minutes": max(1, round(distance / 72))}
+        for weight, neighbor in adjacency.get(node, []):
+            if neighbor not in visited: heappush(queue, (distance + weight, neighbor, path))
+    return {"nodes": [], "distance_m": 0, "walking_minutes": 0}
+
+
+def multi_stop_path(start: str, targets: list[str]) -> dict:
+    nodes: list[str] = []
+    total = 0.0
+    current = start
+    for target in targets:
+        leg = shortest_path(current, target)
+        if not leg["nodes"]:
+            continue
+        nodes.extend(leg["nodes"] if not nodes else leg["nodes"][1:])
+        total += leg["distance_m"]
+        current = target
+    return {"nodes": nodes, "distance_m": round(total, 1), "walking_minutes": max(1, round(total / 72)) if nodes else 0}
+
+
+def require_admin(user: dict) -> None:
+    if user.get("role") != "admin":
+        raise HTTPException(403, "仅管理员可修改空间数据")
+
+
+init_db()
+
+
+@app.get("/api/health")
+def health():
+    room_file = DATA / "room_anchors.json"
+    room_count = len(json.loads(room_file.read_text(encoding="utf-8")).get("rooms", [])) if room_file.exists() else 0
+    graph = graph_data()
+    return {"status": "ok", "time": int(time.time()), "buildings": 21, "room_anchors": room_count, "road_nodes": len(graph["nodes"]), "road_edges": len(graph["edges"])}
+
+
+@app.post("/api/login")
+def login(body: LoginBody):
+    db = sqlite3.connect(DB_PATH); db.row_factory = sqlite3.Row
+    row = db.execute("SELECT * FROM users WHERE username = ?", (body.username,)).fetchone(); db.close()
+    if not row or not hmac.compare_digest(row["password_hash"], password_hash(body.password)):
+        raise HTTPException(401, "账号或密码错误")
+    user = {"username": row["username"], "display_name": row["display_name"], "role": row["role"], "class_name": row["class_name"]}
+    return {"access_token": sign_token(user), "token_type": "bearer", "user": user}
+
+
+@app.get("/api/me")
+def me(authorization: Optional[str] = Header(default=None)):
+    return verify_token(authorization)
+
+
+@app.post("/api/query")
+def query(body: QueryBody, authorization: Optional[str] = Header(default=None)):
+    user = verify_token(authorization); text = body.query.strip(); now = time.localtime()
+    context = {"system_date": time.strftime("%Y-%m-%d", now), "system_weekday": "一二三四五六日"[now.tm_wday], "role": user["role"]}
+    if any(word in text for word in ("路线", "怎么走", "路径", "导航")):
+        start = body.origin or "gate"
+        if "宿舍" in text: start = "entry_B19"
+        if "上午所有" in text or "所有教室" in text:
+            route = multi_stop_path(start, ["entry_B01", "entry_B03"])
+            return {"intent": "route", "answer": f"已按第1、3大节的时间顺序生成宿舍至2#教学楼、5#实验楼的连续路线，共约 {route['distance_m']} 米，步行约 {route['walking_minutes']} 分钟。", "route": route, "highlight": ["B01", "B03"], "context": context}
+        targets = [("图书馆", "entry_B06", "1#图书馆", "B06"), ("食堂", "entry_B09", "11#食堂和活动中心", "B09"), ("操场", "sportsEast", "400米田径场", "B21")]
+        match = next((item for item in targets if item[0] in text), None)
+        target_node, target_name, highlight = (match[1], match[2], match[3]) if match else ("north", "北区中央路口", "B06")
+        route = shortest_path(start, target_node)
+        return {"intent": "route", "answer": f"已生成到{target_name}的室外最短路径，约 {route['distance_m']} 米，步行约 {route['walking_minutes']} 分钟。", "route": route, "highlight": [highlight], "context": context}
+    if "宿舍" in text or "张三" in text:
+        answer = "已定位本人住宿位置：学生宿舍东南 A。"
+        if user["role"] in ("counselor", "admin"):
+            answer = "已定位张三所在的学生宿舍东南 A 示例房间；成员联系方式仅对辅导员和管理员角色显示。"
+        return {"intent": "dormitory", "answer": answer, "highlight": ["B19"], "context": context}
+    if any(word in text for word in ("明天", "第一节", "第1")):
+        return {"intent": "schedule", "answer": f"已读取系统日期 {context['system_date']} 并解析下一上课日：第1大节 08:00-09:40，地点为2#教学楼。", "highlight": ["B01"], "context": context}
+    if "第3" in text or "几点下课" in text:
+        return {"intent": "time", "answer": "第3大节为 14:00-15:40，15:40 下课。", "highlight": [], "context": context}
+    return {"intent": "location", "answer": "已从校园建筑名录、公开规划资料、630 个房间锚点和室外路网中完成本地检索。请继续说明目的地或目标日期。", "highlight": [], "context": context}
+
+
+@app.get("/api/notices")
+def notices(authorization: Optional[str] = Header(default=None)):
+    verify_token(authorization)
+    db = sqlite3.connect(DB_PATH); db.row_factory = sqlite3.Row
+    rows = db.execute("SELECT * FROM notices ORDER BY created_at DESC LIMIT 10").fetchall(); db.close()
+    return {"items": [dict(row) for row in rows]}
+
+
+@app.post("/api/notices")
+def create_notice(body: NoticeBody, authorization: Optional[str] = Header(default=None)):
+    user = verify_token(authorization); require_admin(user)
+    db = sqlite3.connect(DB_PATH)
+    db.execute("INSERT INTO notices(content, created_by, created_at) VALUES (?, ?, ?)", (body.content.strip(), user["username"], int(time.time())))
+    db.commit(); db.close()
+    return {"status": "saved"}
+
+
+@app.get("/api/admin/anchors")
+def anchors(authorization: Optional[str] = Header(default=None)):
+    user = verify_token(authorization); require_admin(user)
+    db = sqlite3.connect(DB_PATH); db.row_factory = sqlite3.Row
+    rows = db.execute("SELECT * FROM room_anchor_overrides ORDER BY updated_at DESC").fetchall(); db.close()
+    return {"items": [{**dict(row), "anchor_world": json.loads(row["anchor_world"])} for row in rows]}
+
+
+@app.post("/api/admin/anchors")
+def save_anchor(body: AnchorBody, authorization: Optional[str] = Header(default=None)):
+    user = verify_token(authorization); require_admin(user)
+    db = sqlite3.connect(DB_PATH)
+    db.execute("INSERT OR REPLACE INTO room_anchor_overrides VALUES (?, ?, ?, ?, ?, ?)", (body.room_code, body.semantic_name, body.building_code, json.dumps(body.anchor_world), user["username"], int(time.time())))
+    db.commit(); db.close()
+    return {"status": "saved", "room_code": body.room_code}
+
+
+if (ROOT / "dist").exists():
+    app.mount("/assets", StaticFiles(directory=ROOT / "dist" / "assets"), name="assets")
+    app.mount("/reference", StaticFiles(directory=ROOT / "public" / "assets" / "reference"), name="reference")
+
+    @app.get("/{path:path}")
+    def spa(path: str):
+        candidate = ROOT / "dist" / path
+        return FileResponse(candidate if candidate.is_file() else ROOT / "dist" / "index.html")

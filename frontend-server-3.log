@@ -1,0 +1,94 @@
+
+  VITE v6.4.3  ready in 570 ms
+
+  ➜  Local:   http://localhost:4175/
+  ➜  Network: http://198.18.0.1:4175/
+  ➜  Network: http://192.168.56.1:4175/
+  ➜  Network: http://192.168.31.41:4175/
+  ➜  Network: http://192.168.245.1:4175/
+  ➜  Network: http://192.168.163.1:4175/
+  ➜  press h + enter to show help
+18:26:55 [vite] (client) page reload src/App.jsx
+18:27:16 [vite] (client) page reload src/App.jsx
+18:27:25 [vite] (client) page reload src/App.jsx
+18:29:55 [vite] (client) page reload src/App.jsx
+18:30:01 [vite] (client) hmr update /src/styles.css
+18:30:09 [vite] (client) page reload src/App.jsx
+18:30:10 [vite] (client) hmr update /src/styles.css
+18:30:37 [vite] (client) page reload src/App.jsx
+18:36:56 [vite] (client) page reload src/App.jsx
+18:37:08 [vite] (client) hmr update /src/styles.css
+18:40:38 [vite] (client) page reload src/App.jsx
+18:40:56 [vite] (client) page reload src/App.jsx
+18:41:10 [vite] (client) hmr update /src/styles.css
+18:41:17 [vite] (client) page reload src/App.jsx
+08:26:51 [vite] (client) page reload src/App.jsx
+08:27:00 [vite] (client) page reload src/App.jsx
+08:27:06 [vite] (client) page reload src/App.jsx
+08:27:13 [vite] (client) page reload src/App.jsx
+08:27:16 [vite] (client) page reload src/App.jsx
+08:27:19 [vite] (client) page reload src/App.jsx
+08:27:31 [vite] (client) page reload src/App.jsx
+08:27:34 [vite] (client) page reload src/App.jsx
+08:27:49 [vite] (client) page reload src/WalkController.jsx
+08:28:01 [vite] (client) page reload src/App.jsx
+08:28:10 [vite] (client) hmr update /src/styles.css
+08:28:24 [vite] (client) page reload src/WalkController.jsx
+08:28:24 [vite] (client) hmr update /src/styles.css
+08:30:25 [vite] (client) page reload src/App.jsx
+08:30:28 [vite] (client) hmr update /src/styles.css
+08:31:25 [vite] (client) page reload src/App.jsx
+08:31:35 [vite] (client) page reload src/App.jsx
+08:32:38 [vite] (client) page reload src/App.jsx
+09:04:16 [vite] (client) page reload src/App.jsx
+09:04:22 [vite] (client) page reload src/App.jsx
+09:04:33 [vite] (client) page reload src/App.jsx
+09:04:42 [vite] (client) page reload src/App.jsx
+09:04:47 [vite] (client) page reload src/App.jsx
+09:05:00 [vite] (client) page reload src/App.jsx
+09:05:09 [vite] (client) page reload src/WalkController.jsx
+09:05:19 [vite] (client) page reload src/WalkController.jsx
+09:13:39 [vite] (client) page reload src/App.jsx
+09:13:52 [vite] (client) page reload src/App.jsx
+09:13:55 [vite] (client) page reload src/App.jsx
+09:14:05 [vite] (client) page reload src/App.jsx
+09:14:10 [vite] (client) hmr update /src/styles.css
+09:14:18 [vite] (client) page reload src/App.jsx
+09:15:04 [vite] (client) page reload src/App.jsx
+09:15:08 [vite] (client) page reload src/App.jsx
+09:20:57 [vite] (client) page reload src/App.jsx
+09:21:03 [vite] (client) page reload src/App.jsx
+09:21:07 [vite] (client) page reload src/App.jsx
+09:21:31 [vite] (client) hmr update /src/styles.css
+09:21:41 [vite] (client) page reload src/App.jsx
+09:31:35 [vite] (client) page reload src/App.jsx
+09:31:45 [vite] (client) page reload src/App.jsx
+09:32:02 [vite] (client) page reload src/App.jsx
+09:32:07 [vite] (client) hmr update /src/styles.css
+09:32:40 [vite] (client) page reload src/App.jsx
+09:32:45 [vite] (client) page reload src/App.jsx
+09:51:35 [vite] (client) page reload src/App.jsx
+09:51:43 [vite] (client) page reload src/App.jsx
+09:51:47 [vite] (client) page reload src/App.jsx
+09:51:52 [vite] (client) page reload src/App.jsx
+09:52:02 [vite] (client) page reload src/App.jsx
+09:52:17 [vite] (client) page reload src/App.jsx
+09:52:21 [vite] (client) page reload src/App.jsx
+09:52:39 [vite] (client) page reload src/LoginScreen.jsx
+09:52:51 [vite] (client) page reload src/App.jsx
+09:53:08 [vite] (client) page reload src/App.jsx
+09:53:20 [vite] (client) hmr update /src/styles.css
+09:53:29 [vite] (client) page reload src/App.jsx
+09:53:29 [vite] (client) page reload src/LoginScreen.jsx
+10:42:40 [vite] (client) page reload src/App.jsx
+10:43:01 [vite] (client) page reload src/App.jsx
+10:43:16 [vite] (client) page reload src/WalkController.jsx
+10:44:04 [vite] (client) page reload src/App.jsx
+10:51:29 [vite] (client) page reload src/App.jsx
+11:21:15 [vite] (client) page reload data/room_anchors.json
+11:23:16 [vite] (client) page reload src/App.jsx
+11:24:11 [vite] (client) page reload src/App.jsx
+11:25:10 [vite] (client) page reload src/App.jsx
+11:25:21 [vite] (client) page reload src/App.jsx
+12:54:56 [vite] (client) page reload src/main.jsx
+12:56:12 [vite] (client) hmr update /src/styles.css
