@@ -1,0 +1,27 @@
+{
+  // 让 VS Code 的智能提示 / 跳转定义用项目自带的 venv 解释器，
+  // 这样 import fastapi 之类的语句能被正确解析（不再画红线）。
+  //
+  // 如果你平时是用系统 python38 跑的（当前终端里启动的就是它），
+  // 把下面这行换成：
+  //   "E:\\program file\\python\\python38\\python.exe"
+  // 两个环境的依赖版本是一致的，选哪个都能正确解析。
+  "python.defaultInterpreterPath": "E:\\practice-examples\\competition\\campus-new\\venv\\Scripts\\python.exe",
+
+  // 调试时让 uvicorn 的日志正常输出到集成终端
+  "python.terminal.activateEnvironment": true,
+
+  // 排除一些不用索引的大目录，VS Code 响应速度会快很多
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/venv/**": true,
+    "**/dist/**": true,
+    "**/.git/objects/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/venv": true,
+    "**/dist": true
+  },
+  "python-envs.defaultEnvManager": "ms-python.python:system"
+}

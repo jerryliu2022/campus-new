@@ -63,6 +63,7 @@ export default function RagPage() {
   const [tools, setTools] = useState([]);
   const listRef = useRef(null);
 
+  // 首页加载源数据（按需加载，避免一次性拉取所有数据）
   const loadTab = async (key) => {
     if (dataSource[key] && (Array.isArray(dataSource[key]) ? dataSource[key].length : true)) return;
     try {

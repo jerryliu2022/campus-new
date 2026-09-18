@@ -1,0 +1,100 @@
+{
+  // 岳阳学院智慧校园 —— 后端调试配置
+  //
+  // 怎么用：
+  //   1. 先停掉终端里正在跑的后端（Ctrl+C），否则 8000 端口会被占，VS Code 起不来
+  //   2. 打开 backend/main.py，在想看的地方左边点一下打红点（断点）
+  //   3. 左侧「运行和调试」→ 顶部下拉选一个配置 → 按 F5
+  //   4. 触发这个断点：浏览器访问对应接口，或 curl http://127.0.0.1:8000/api/health
+  //
+  // 注意：cwd 必须是**项目根目录**，不能是 backend/ 子目录。
+  //   main.py 里 `ROOT = Path(__file__).resolve().parents[1]` 是按项目根算的，
+  //   而且 `from backend.rag import router` 需要项目根在 sys.path 里才 import 得到。
+  //   所以这里写死绝对路径，无论你把 VS Code 打开在哪一层都对。
+  //
+  // 如果你的 Python 扩展比较旧，不认 "debugpy" 这个 type，把下面所有
+  //   "type": "debugpy"  改成  "type": "python"  即可。
+
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // ① 推荐：用系统 python38 启动（你当前终端里跑的就是这个解释器）
+      "name": "① 后端 FastAPI · 系统 python38",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "backend.main:app",
+        "--host", "0.0.0.0",
+        "--port", "8000"
+        // ⚠️ 千万别加 --reload！它会 fork 出子进程，
+        //    调试器跟的是父进程，子进程里的断点全部失效。
+      ],
+      "python": "E:\\program file\\python\\python38\\python.exe",
+      "cwd": "E:\\practice-examples\\competition\\campus-new",
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    },
+
+    {
+      // ② 用项目自带的 venv 启动（依赖隔离，更干净）
+      "name": "② 后端 FastAPI · 项目 venv",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "backend.main:app",
+        "--host", "0.0.0.0",
+        "--port", "8000"
+      ],
+      "python": "E:\\practice-examples\\competition\\campus-new\\venv\\Scripts\\python.exe",
+      "cwd": "E:\\practice-examples\\competition\\campus-new",
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    },
+
+    {
+      // ③ 只想看自己写的代码、不想一不小心步进进 FastAPI/starlette 源码时用这个
+      "name": "③ 后端 FastAPI · 只调试项目代码",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "backend.main:app",
+        "--host", "0.0.0.0",
+        "--port", "8000"
+      ],
+      "python": "E:\\program file\\python\\python38\\python.exe",
+      "cwd": "E:\\practice-examples\\competition\\campus-new",
+      "justMyCode": true,
+      "console": "integratedTerminal"
+    },
+
+    {
+      // ④ 不想关掉现有服务时用「附加」模式
+      //    终端里改成这样启动（多一层 -m debugpy）：
+      //      python -m debugpy --listen 5678 --wait-for-client -m uvicorn backend.main:app --host 0.0.0.0 --port 8000
+      //    然后按 F5 选这个配置，就能挂上去调试已经在跑的进程。
+      "name": "④ 附加到已运行的后端 (5678)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "127.0.0.1",
+        "port": 5678
+      },
+      "justMyCode": false
+    },
+
+    {
+      // ⑤ 临时跑一段脚本验证某个函数（把 file 改成你要跑的文件）
+      "name": "⑤ 调试当前打开的 Python 文件",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "cwd": "E:\\practice-examples\\competition\\campus-new",
+      "python": "E:\\program file\\python\\python38\\python.exe",
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    }
+  ]
+}
