@@ -20,6 +20,7 @@ import {
   SquareStack,
 } from "lucide-react";
 import "./learn.css";
+import { roomFriendly } from "./labels.js";
 
 /**
  * 学习中心（/learn 免登录）
@@ -46,7 +47,30 @@ const TYPE_META = {
   full: { label: "全链路", cls: "tag-full" },
 };
 
-const CLASSES = ["计科1班", "计科2班", "计科3班", "计科4班", "计科5班", "计科6班"];
+// 演示班级从生产数据动态拉取（/api/rag/classes，随 data/rag 重新生成自动同步）；
+// 兜底列表保证离线时教学示例依然可跑。
+const FALLBACK_CLASSES = [
+  "计科2501", "计科2502", "计科2503",
+  "计科2601", "计科2602", "计科2603",
+];
+
+// 全站共享：拉生产班级清单（一次请求全页复用）
+let _classCache = null;
+function useClassList() {
+  const [classes, setClasses] = React.useState(_classCache || FALLBACK_CLASSES);
+  React.useEffect(() => {
+    if (_classCache) return;
+    api("/api/rag/classes")
+      .then((payload) => {
+        if (Array.isArray(payload?.all) && payload.all.length) {
+          _classCache = payload.all;
+          setClasses(payload.all);
+        }
+      })
+      .catch(() => {});
+  }, []);
+  return classes;
+}
 
 async function api(path, options) {
   const response = await fetch(path, options);
@@ -190,7 +214,8 @@ function SqlExplained({ sql, note }) {
 function ChainDemo() {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [cls, setCls] = useState("计科1班");
+  const classList = useClassList();
+  const [cls, setCls] = useState("计科2501");
   const [error, setError] = useState("");
 
   async function run() {
@@ -213,7 +238,7 @@ function ChainDemo() {
       </div>
       <div className="learn-controls">
         <select value={cls} onChange={(e) => setCls(e.target.value)}>
-          {CLASSES.map((c) => <option key={c}>{c}</option>)}
+          {classList.map((c) => <option key={c}>{c}</option>)}
         </select>
         <button onClick={run} disabled={busy}><Play size={14} /> 运行全链路</button>
       </div>
@@ -299,7 +324,7 @@ function ReactListDemo() {
   async function load() {
     setStatus("加载中…");
     try {
-      const data = await api("/api/learn/demo/chain?class_name=计科1班");
+      const data = await api("/api/learn/demo/chain?class_name=计科2501");
       setRows(data.rows);
       setStatus(`已加载 ${data.rows.length} 行`);
     } catch (e) { setStatus("失败：" + e.message); }
@@ -313,7 +338,7 @@ function ReactListDemo() {
           <thead><tr><th>课程</th><th>教师</th><th>星期</th><th>大节</th><th>教室</th></tr></thead>
           <tbody>
             {(rows || []).map((r) => (
-              <tr key={r.id}><td>{r.course}</td><td>{r.teacher}</td><td>周{r.weekday}</td><td>第{r.period}节</td><td>{r.location}</td></tr>
+              <tr key={r.id}><td>{r.course}</td><td>{r.teacher}</td><td>周{r.weekday}</td><td>第{r.period}节</td><td>{roomFriendly(r.location)}</td></tr>
             ))}
           </tbody>
         </table>
@@ -878,11 +903,12 @@ function PyRunner({ lesson }) {
 
 /* ============ RAG：问答测试器 ============ */
 function RagTester() {
-  const [q, setQ] = useState("计科1班周一到周五都有几节课？");
-  const [cls, setCls] = useState("计科1班");
+  const [q, setQ] = useState("计科2501周一到周五都有几节课？");
+  const [cls, setCls] = useState("计科2501");
   const [result, setResult] = useState(null);
   const [evalResult, setEvalResult] = useState(null);
   const [busy, setBusy] = useState(false);
+  const classList = useClassList();
   async function ask() {
     setBusy(true); setResult(null);
     try {
@@ -893,7 +919,7 @@ function RagTester() {
   return (
     <div className="learn-runner">
       <div className="learn-controls">
-        <select value={cls} onChange={(e) => setCls(e.target.value)}>{CLASSES.map((c) => <option key={c}>{c}</option>)}</select>
+        <select value={cls} onChange={(e) => setCls(e.target.value)}>{classList.map((c) => <option key={c}>{c}</option>)}</select>
         <input className="learn-url" value={q} onChange={(e) => setQ(e.target.value)} />
         <button onClick={ask} disabled={busy}><Play size={14} /> 提问</button>
         <button className="ghost" onClick={async () => setEvalResult(await api("/api/rag/eval"))}>运行评测集</button>
@@ -918,17 +944,17 @@ function RagTester() {
 
 /* ============ 3D：知识点总览表 ============ */
 const D3_POINTS = [
-  ["场景 Scene", "所有三维物体的容器；没有场景就无处安放模型", "每一关都在用", "src/App.jsx · 1664 行 <Canvas>"],
-  ["相机 Camera", "决定「从哪里、以多大视角看」，相当于你的眼睛", "L1 默认 / 可写 camera()", "src/App.jsx · 1667 行 <PerspectiveCamera>"],
-  ["坐标系", "Y 轴向上，X 是左右，Z 是前后；三轴交点就是原点", "L2", "src/App.jsx · 339 行 y = building.h / 2"],
-  ["几何体 Geometry", "物体的形状：盒、圆柱、圆锥、圆环……都是数学描述", "L1 / L3 / L4", "src/App.jsx · 390 行 boxGeometry、369 行 cylinderGeometry"],
-  ["位置 / 尺寸 / 旋转", "几何体以「自身中心」定位，position 给的是中心点坐标", "L2 / L4", "blender/generate_campus.py · 77 行 obj.location / obj.scale"],
-  ["材质 Material", "表面怎么反光：颜色、金属度、粗糙度、自发光", "L5", "src/App.jsx · 308 行 mat(color, metalness, roughness)"],
-  ["灯光 Light", "没有灯，再正确的模型也是一片黑", "L5", "src/App.jsx · 1096-1110 行 环境光/半球光/平行光"],
-  ["阴影 Shadow", "光被物体挡住产生的投影，靠 castShadow / receiveShadow 开关", "L5", "src/App.jsx · 1106 行 shadow-mapSize={[2048, 2048]}"],
-  ["动画 Animation", "每一帧改一点点属性；必须乘 delta，否则「性能好的机器转得更快」", "L6", "src/App.jsx · 660 行 useFrame、673 行 MathUtils.damp"],
-  ["交互 Interaction", "鼠标点击 → 射线拾取到某个物体 → 回调函数改界面状态", "L7", "src/App.jsx · 713 行 onClick 回溯 building_code"],
-  ["模型文件 GLB", "Blender 里做好的模型导出成 glb，网页用 useGLTF 加载", "真实模型对比", 'src/App.jsx · 622 行 useGLTF("/assets/yueyang_campus.glb")'],
+  ["场景 Scene", "所有三维物体的容器；没有场景就无处安放模型", "每一关都在用", "src/App.jsx · 2071 行 <Canvas>"],
+  ["相机 Camera", "决定「从哪里、以多大视角看」，相当于你的眼睛", "L1 默认 / 可写 camera()", "src/App.jsx · 2083 行 <PerspectiveCamera>"],
+  ["坐标系", "Y 轴向上，X 是左右，Z 是前后；三轴交点就是原点", "L2", "src/App.jsx · 362 行 y = building.h / 2"],
+  ["几何体 Geometry", "物体的形状：盒、圆柱、圆锥、圆环……都是数学描述", "L1 / L3 / L4", "src/App.jsx · 413 行 boxGeometry、346 行 cylinderGeometry"],
+  ["位置 / 尺寸 / 旋转", "几何体以「自身中心」定位，position 给的是中心点坐标", "L2 / L4", "blender/generate_campus.py · 84 行 obj.location / obj.scale"],
+  ["材质 Material", "表面怎么反光：颜色、金属度、粗糙度、自发光", "L5", "src/App.jsx · 318 行 mat(color, metalness, roughness)"],
+  ["灯光 Light", "没有灯，再正确的模型也是一片黑", "L5", "src/App.jsx · 1452-1462 行 环境光/半球光/平行光"],
+  ["阴影 Shadow", "光被物体挡住产生的投影，靠 castShadow / receiveShadow 开关", "L5", "src/App.jsx · 1462 行 shadow-mapSize={[1024, 1024]}"],
+  ["动画 Animation", "每一帧改一点点属性；必须乘 delta，否则「性能好的机器转得更快」", "L6", "src/App.jsx · 861 行 useFrame、904 行 MathUtils.damp"],
+  ["交互 Interaction", "鼠标点击 → 射线拾取到某个物体 → 回调函数改界面状态", "L7", "src/App.jsx · 944 行 onClick 回溯 building_code"],
+  ["模型文件 GLB", "Blender 里做好的模型导出成 glb，网页用 useGLTF 加载", "真实模型对比", 'src/App.jsx · 684 行 useGLTF("/assets/yueyang_campus.glb")'],
 ];
 
 function D3ConceptMap() {
@@ -1521,7 +1547,7 @@ cone(1.6, 3, 0, 7, -9, "#81c784", spin = 40, float = 0.5)`,
     label: "L7 点击交互",
     title: "L7　点击交互：像项目首页那样点楼栋",
     tip: "给几何体加 id 就能点击；点中的楼会升起并变红 —— 这是 3D 页面最基本的人机交互。",
-    source: "src/App.jsx · Building 的 onClick（397-400 行）、CampusModel 的 onClick（713 行）、LIFT_OFFSET 第 295 行",
+    source: "src/App.jsx · Building 的 onClick（397-400 行）、CampusModel 的 onClick（944 行）、liftOf 第 305 行",
     code: `ground(80, "#2a3b4d")
 
 # 带 id 的物体可以点击：点击后升起 1.6 米并高亮变红
@@ -1533,7 +1559,7 @@ box(7, 8, 4, 9, 4, 0, "#cbd6d6", id = "B11")      # 学生公寓
 cylinder(0.4, 6, -14, 3, 6, "#8d9aa5")`,
     notes: [
       { lines: "第 4-6 行", text: "id 就是楼栋编号。项目里 B01/B02/B11 这些编号同时是 data/campus_layout.json、room_anchors.json 和数据库里的主键，一套编号串起整个系统。" },
-      { lines: "点击后发生什么", text: "本关：y 上升 1.6 米 + 变成红色 + 缓慢自转。项目：选中楼栋抬升 5.5，被 LIFT_OFFSET=30 抬起的楼升 30 米，同时显示该楼的房间。" },
+      { lines: "点击后发生什么", text: "本关：y 上升 1.6 米 + 变成红色 + 缓慢自转。项目：选中楼栋抬升 5.5，点「房间 LOD2」再点楼会弹起「一层楼的高度」（liftOf，见 App.jsx 第 305 行），同时显示该楼的房间。" },
       { lines: "为什么要 stopPropagation", text: "3D 场景里点击会穿透多层物体。项目里 onClick 第一行就是 event.stopPropagation()，避免点楼的同时又触发了地面/其他物体的点击。" },
       { lines: "怎么知道点到了哪栋楼", text: "项目不用 id 参数，而是在 Blender 导出时把楼栋编号写进了网格名字（B01_xxx），代码用正则从 object.name 里解析出 building_code。" },
       { lines: "对照项目", text: "src/App.jsx 第 713 行 onClick 里向上回溯找到 building_code，再回调 onSelect 通知 React 更新选中状态 —— 这就是「3D 场景 → 界面状态」的完整链路。" },
@@ -1551,7 +1577,7 @@ const LESSONS = {
     id: "chain-2", module: "chain", type: "backend", title: "全链路里的后端代码（项目真实源码）", source: "backend/learn.py · demo_chain()",
     desc: "这就是点「运行全链路」时后端真正执行的代码：接收查询参数 → 连接 SQLite → 参数化查询 → 组装 JSON。可自行切换文件与行号范围浏览整个后端。",
     render: () => <SourceViewer file="backend/learn.py" start={238} end={259} notes={[
-      { lines: "238-239", text: "第 238 行是装饰器 @router.get(\"/demo/chain\")，把函数注册成接口；def demo_chain(class_name: str = \"计科1班\") 里的 class_name 就是前端 URL 上的查询参数（?class_name=计科1班），FastAPI 自动帮我们解析并做默认值处理。" },
+      { lines: "238-239", text: "第 238 行是装饰器 @router.get(\"/demo/chain\")，把函数注册成接口；def demo_chain(class_name: str = \"计科2501\") 里的 class_name 就是前端 URL 上的查询参数（?class_name=计科2501），FastAPI 自动帮我们解析并做默认值处理。" },
       { lines: "241-242", text: "SQL 用占位符 ? 表示参数位置，绝不把用户输入直接拼进 SQL —— 这是防 SQL 注入的基本功。" },
       { lines: "244-246", text: "connect() 打开测试库；db.execute(sql, (class_name,)) 把参数安全绑定后执行查询；再单独查一次总行数。" },
       { lines: "248", text: "elapsed = 用 time.perf_counter() 前后相减，得到这条 SQL 的真实耗时，让学习者看到「数据库其实很快」。" },
@@ -1587,9 +1613,9 @@ const LESSONS = {
     <h1>岳阳学院 · 智慧校园</h1>
     <p>这是最朴素的 HTML 页面：标题 h1、段落 p、列表 ul。</p>
     <ul>
-      <li>6 个班级 / 360 名学生</li>
-      <li>60 间宿舍（每间 6 人）</li>
-      <li>冬季作息 14:00 上课</li>
+      <li>133 个班级 / 7004 名学生</li>
+      <li>1168 间宿舍（每间最多 6 人）</li>
+      <li>夏季作息 14:30 上课</li>
     </ul>
     <!-- id 是元素的唯一名字，JS 靠它找到这个元素 -->
     <button onclick="document.getElementById('tip').textContent='你点击了按钮！'">点我</button>
@@ -1654,9 +1680,9 @@ const LESSONS = {
       <div class="panel">
         <b>中栏</b>
         <div class="cards">
-          <div class="card">计科1班<br>60人</div>
-          <div class="card">计科2班<br>60人</div>
-          <div class="card">计科3班<br>60人</div>
+          <div class="card">计科2501<br>55人</div>
+          <div class="card">计科2502<br>55人</div>
+          <div class="card">计科2503<br>55人</div>
         </div>
       </div>
       <div class="panel"><b>右栏</b><p style="font-size: 12px">评测</p></div>
@@ -1693,9 +1719,9 @@ const LESSONS = {
     <script>
       // 数据（真实项目里这份数据来自后端 API）
       const classes = [
-        { name: "计科1班", students: 60, dorm: "B11" },
-        { name: "计科2班", students: 60, dorm: "B12" },
-        { name: "计科3班", students: 60, dorm: "B13" },
+        { name: "计科2501", students: 55, dorm: "13#/16#学生宿舍" },
+        { name: "计科2502", students: 55, dorm: "13#/16#学生宿舍" },
+        { name: "计科2503", students: 55, dorm: "13#/16#学生宿舍" },
       ];
       // 函数：算总人数
       function totalStudents(list) {
@@ -1757,15 +1783,15 @@ const LESSONS = {
   <body>
     <h3>迷你问答（前端本地模拟）</h3>
     <div class="bar">
-      <input id="q" placeholder="问：计科1班有多少人？" />
+      <input id="q" placeholder="问：计科2501有多少人？" />
       <button id="send">发送</button>
     </div>
     <div id="log"></div>
     <script>
       // ① 一份「假知识库」：真实项目里这份答案由后端 /api/rag/ask 返回
       const answers = {
-        "计科1班有多少人": "计科1班共 60 名学生。",
-        "第3大节几点下课": "冬季作息 15:40 下课。",
+        "计科2501有多少人": "计科2501共有 55 名学生。",
+        "第3大节几点下课": "夏季作息 16:10 下课。",
       };
 
       // ② 发送函数：读输入 → 查知识库 → 往列表最前面插入消息
@@ -1773,7 +1799,7 @@ const LESSONS = {
         const text = document.getElementById("q").value.trim();  // 读输入框的值
         if (!text) return;                                       // 空内容直接返回，不发空消息
         const hit = Object.keys(answers).find((key) => text.includes(key)); // 找一个能匹配上的问题
-        const reply = hit ? answers[hit] : "（示例只内置了 2 个问题，试试「计科1班有多少人」）";
+        const reply = hit ? answers[hit] : "（示例只内置了 2 个问题，试试「计科2501有多少人」）";
         document.getElementById("log").innerHTML =
           '<div class="msg">你：' + text + '</div>' +
           '<div class="msg">答：' + reply + '</div>' +
@@ -1829,13 +1855,13 @@ const LESSONS = {
   </head>
   <body>
     <h3>点击按钮 → 真实请求后端 → 渲染结果</h3>
-    <button id="go">GET /api/learn/demo/chain?class_name=计科1班</button>
+    <button id="go">GET /api/learn/demo/chain?class_name=计科2501</button>
     <div id="out"></div>
     <script>
       document.getElementById("go").onclick = async () => {
         document.getElementById("out").innerHTML = "请求中…";
         try {
-          const res = await fetch("/api/learn/demo/chain?class_name=计科1班");  // ① 发请求
+          const res = await fetch("/api/learn/demo/chain?class_name=计科2501");  // ① 发请求
           const data = await res.json();                                        // ② 解析 JSON
           document.getElementById("out").innerHTML =
             '<p style="font-size: 13px">后端执行的 SQL：</p><pre>' + data.sql + '</pre>' +
@@ -1852,7 +1878,7 @@ const LESSONS = {
     {
       id: "fe-6", module: "frontend", type: "frontend",
       title: "React：useState —— 数据一变，界面自己跟着变",
-      source: "src/RagPage.jsx · 第 45-63 行（8 个 useState）；src/App.jsx · 选中楼栋的 useState",
+      source: "src/RagPage.jsx · 第 50-70 行（10 个 useState）；src/App.jsx · 选中楼栋的 useState",
       desc: "这是 React 最核心的概念，项目里所有交互都建立在它之上。下面先讲清「为什么会有 useState」，再从最小的例子一路加到真实场景；每个例子都能改代码、点运行、立刻看结果。",
       render: () => (
         <>
@@ -1958,7 +1984,7 @@ function App() {
       <button onClick={() => setOpen(!open)}>
         {open ? "收起" : "展开"}课程说明
       </button>
-      {open && <p>本课程包含 6 个班、360 名学生、96 条排课记录。</p>}
+      {open && <p>本数据集包含 133 个班、7004 名学生、1849 条排课记录。</p>}
     </div>
   );
 }`,
@@ -2059,13 +2085,13 @@ function App() {
             <ReactCounterDemo />
           </div>
 
-          <SourceViewer title="项目源码：RagPage.jsx 里真实的状态声明（8 个 useState）" file="src/RagPage.jsx" start={45} end={63} notes={[
-            { lines: "45-51", text: "messages：聊天记录数组。初始就放了一条 AI 的欢迎语 —— 状态初始值可以是任何类型（数字、字符串、数组、对象）。" },
-            { lines: "52", text: "input：输入框里当前的内容（受控组件，对应例 2）。" },
-            { lines: "53", text: "viewClass：当前查看的是哪个班。RagPage 用这个变量决定所有请求带哪个班级参数。" },
-            { lines: "54", text: "busy：是否正在请求中。用来禁用按钮、显示「思考中」（对应例 3 的布尔状态）。" },
-            { lines: "57-59", text: "tab / dataSource / filter：一个状态管「当前看哪张表」，一个管「后端拿回来的数据」，一个管「搜索关键词」。三个独立状态各管一摊，这就是 React 的组织方式。" },
-            { lines: "62-63", text: "evalResult / tools：评测结果和工具列表。可以看到一个页面用十几个 useState 是很正常的。" },
+          <SourceViewer title="项目源码：RagPage.jsx 里真实的状态声明（10 个 useState）" file="src/RagPage.jsx" start={50} end={69} notes={[
+            { lines: "50-56", text: "messages：聊天记录数组。初始就放了一条 AI 的欢迎语 —— 状态初始值可以是任何类型（数字、字符串、数组、对象）。" },
+            { lines: "57", text: "input：输入框里当前的内容（受控组件，对应例 2）。" },
+            { lines: "58-59", text: "classList / viewClass：视角班级清单与当前选中的班。清单从生产数据动态拉取（/api/rag/classes），viewClass 决定所有请求带哪个班级参数。" },
+            { lines: "60", text: "busy：是否正在请求中。用来禁用按钮、显示「思考中」（对应例 3 的布尔状态）。" },
+            { lines: "63-65", text: "tab / dataSource / filter：一个状态管「当前看哪张表」，一个管「后端拿回来的数据」，一个管「搜索关键词」。三个独立状态各管一摊，这就是 React 的组织方式。" },
+            { lines: "68-69", text: "evalResult / tools：评测结果和工具列表。可以看到一个页面用十几个 useState 是很正常的。" },
           ]} />
         </>
       ),
@@ -2073,7 +2099,7 @@ function App() {
     {
       id: "fe-7", module: "frontend", type: "frontend",
       title: "React：useEffect + fetch + map —— 组件自己把数据取回来",
-      source: "src/RagPage.jsx · 第 66-82 行 loadTab() + 两个 useEffect；src/RagPage.jsx · 学生列表 map",
+      source: "src/RagPage.jsx · 第 73-107 行 loadTab() + 三个 useEffect；src/RagPage.jsx · 学生列表 map",
       desc: "组件出现在页面上之后，怎么自动去后端拿数据？这件事不能随手写在组件函数里，于是有了 useEffect。下面先讲清它的来由，再用 5 个可运行的例子把「什么时候跑、跑几次、什么时候要清理」讲透。",
       render: () => (
         <>
@@ -2131,14 +2157,21 @@ function App() {
             code: `// 依赖数组里写谁，谁变了就重新执行一次。
 // 下面点按钮改 classNo，
 // effect 就会重跑 → 重新「加载」这个班。
+// 班级与人数来自生产数据（data/rag/students.json）。
+const CLASSES = [
+  { name: "计科2501", info: "55 人，宿舍 13#/16#学生宿舍" },
+  { name: "计科2502", info: "55 人，宿舍 13#/16#学生宿舍" },
+  { name: "计科2601", info: "52 人，宿舍 东南A/25#学生宿舍" },
+];
+
 function App() {
-  const [classNo, setClassNo] = useState(1);
+  const [classNo, setClassNo] = useState(0);
   const [info, setInfo] = useState("加载中…");
 
   useEffect(() => {
     setInfo("加载中…");
     const timer = setTimeout(() => {
-      setInfo("计科" + classNo + "班：60 人，宿舍 B1" + classNo);
+      setInfo(CLASSES[classNo].name + "：" + CLASSES[classNo].info);
     }, 400);
     // 返回的这个函数叫「清理函数」：
     // 下次依赖变化（或组件被移除）之前，
@@ -2148,8 +2181,8 @@ function App() {
 
   return (
     <div>
-      {[1, 2, 3].map((n) => (
-        <button key={n} onClick={() => setClassNo(n)}>计科{n}班</button>
+      {CLASSES.map((c, n) => (
+        <button key={c.name} onClick={() => setClassNo(n)}>{c.name}</button>
       ))}
       <p>{info}</p>
     </div>
@@ -2158,8 +2191,8 @@ function App() {
             notes: [
               { lines: "[classNo]", text: "依赖数组里写了 classNo → classNo 一变，React 就把上一次的 effect 清掉、重新跑一遍。这就是「切换条件自动重新加载」的实现方式。" },
               { lines: "清理函数", text: "effect 里 return 的那个函数叫清理函数。React 会在「下次重跑之前」和「组件被移除时」调用它。" },
-              { lines: "为什么必须清理", text: "不清理的话，快速点 1 → 2 → 3 时，前两次的定时器还在跑，它们回来后会依次把 info 改掉，最后屏幕上显示的可能是「计科2班」而不是「计科3班」—— 这就是典型的竞态 bug。" },
-              { lines: "对照项目", text: "src/RagPage.jsx 第 76-78 行：useEffect(() => { loadTab(tab); }, [tab]) —— 一模一样，切换标签页就重新取数据。" },
+              { lines: "为什么必须清理", text: "不清理的话，快速点 计科2501 → 计科2502 → 计科2601 时，前两次的定时器还在跑，它们回来后会依次把 info 改掉，最后屏幕上显示的可能是「计科2502」而不是「计科2601」—— 这就是典型的竞态 bug。" },
+              { lines: "对照项目", text: "src/RagPage.jsx 第 83-85 行：useEffect(() => { loadTab(tab); }, [tab]) —— 一模一样，切换标签页就重新取数据。" },
             ],
           }} />
 
@@ -2260,24 +2293,25 @@ function App() {
 // key 是每行的唯一编号，React 靠它认出
 // 「哪行没变、哪行是新的」，更新才高效。
 function App() {
+  // 真实学生数据（节选自生产库 rag_students 表，计科2501 班）
   const students = [
-    { id: "202561001", name: "张伟", score: 92 },
-    { id: "202561002", name: "李娜", score: 78 },
-    { id: "202561003", name: "王强", score: 85 },
+    { id: "2025070104", name: "罗慕波", bed: 3 },
+    { id: "2025070107", name: "孟愚琴", bed: 6 },
+    { id: "2025070110", name: "沈峰", bed: 3 },
   ];
 
   return (
     <table>
       <thead>
-        <tr><th>学号</th><th>姓名</th><th>成绩</th><th>结论</th></tr>
+        <tr><th>学号</th><th>姓名</th><th>床号</th><th>结论</th></tr>
       </thead>
       <tbody>
         {students.map((s) => (
           <tr key={s.id}>
             <td>{s.id}</td>
             <td>{s.name}</td>
-            <td>{s.score}</td>
-            <td>{s.score >= 60 ? "及格" : "不及格"}</td>
+            <td>{s.bed}</td>
+            <td>{s.bed <= 3 ? "下铺" : "上铺"}</td>
           </tr>
         ))}
       </tbody>
@@ -2288,7 +2322,7 @@ function App() {
               { lines: "map", text: "students.map((s) => <tr>…</tr>)：map 把每个数组元素变成一段 JSX，结果是「一堆 JSX」组成的数组，React 会依次渲染出来。这是渲染列表的标准写法。" },
               { lines: "圆括号", text: "箭头函数返回多行 JSX 时要用 ( ) 把 JSX 包起来，否则 JS 会在换行处自动补分号，导致语法错误。" },
               { lines: "key", text: "key 是每行的唯一标识。React 靠它认出「哪一行没变、哪行是新增的、哪行被删了」，从而只更新变化的部分，而不是整表重画。选业务上唯一的字段（学号）比用数组下标更稳。" },
-              { lines: "JSX 里可以写表达式", text: "{s.score >= 60 ? \"及格\" : \"不及格\"} —— 花括号里可以放任何 JS 表达式，用它算出要显示的内容。" },
+              { lines: "JSX 里可以写表达式", text: "{s.bed <= 3 ? \"下铺\" : \"上铺\"} —— 花括号里可以放任何 JS 表达式，用它算出要显示的内容。" },
               { lines: "对照项目", text: "src/RagPage.jsx 的学生列表、排课表，学习中心的数据表，全都是 map + key 渲染出来的。" },
             ],
           }} />
@@ -2302,7 +2336,7 @@ function App() {
             { lines: "66-67", text: "loadTab(key)：参数是标签名（students / schedule…）。第 67 行先判断「这个数据已经加载过就直接返回」，避免重复请求 —— 这是个很实用的优化。" },
             { lines: "69-70", text: "await api(...) 真实请求后端；setDataSource((prev) => ({ ...prev, [key]: data })) 用展开运算符更新对象里的一个字段，其余字段保留 —— 和例 4 的数组不可变更新是一个道理。" },
             { lines: "71-73", text: "catch 里把 error.message 写进状态。这样界面上就能显示错误，不会白屏。" },
-            { lines: "76-78", text: "useEffect(() => { loadTab(tab); }, [tab]) —— 依赖 tab：切换标签页时自动重新加载。和例 2 的 [classNo] 完全同构。" },
+            { lines: "83-85", text: "useEffect(() => { loadTab(tab); }, [tab]) —— 依赖 tab：切换标签页时自动重新加载。和例 2 的 [classNo] 完全同构。" },
             { lines: "80-82", text: "useEffect(..., []) —— 空数组，只在页面首次打开时拉取工具列表一次。和例 1 的 [] 完全同构。" },
           ]} />
         </>
@@ -2351,7 +2385,7 @@ function App() {
     {
       id: "be-3", module: "backend", type: "backend", title: "POST + JSON 请求体 + Pydantic 校验", source: "backend/rag.py · class AskBody(BaseModel) 与 @router.post(\"/ask\")",
       desc: "POST 用请求体传数据。把 question 删掉再发送，会看到 FastAPI 自动返回 422 校验错误——这就是 Pydantic 的作用。",
-      render: () => <ApiTester lesson={{ api: { method: "POST", path: "/api/rag/ask", body: '{\n  "question": "计科2班今天下午有什么课？",\n  "class_name": "计科2班"\n}', params: ["question（必填）", "class_name（可选，视角班级）"] } }} />,
+      render: () => <ApiTester lesson={{ api: { method: "POST", path: "/api/rag/ask", body: '{\n  "question": "计科2601今天下午有什么课？",\n  "class_name": "计科2601"\n}', params: ["question（必填）", "class_name（可选，视角班级）"] } }} />,
     },
     {
       id: "be-4", module: "backend", type: "backend", title: "登录鉴权：JWT 令牌如何工作", source: "backend/main.py · /api/login、sign_token/verify_token、require_admin",
@@ -2360,36 +2394,37 @@ function App() {
     },
     {
       id: "be-5", module: "backend", type: "backend", title: "后端如何读 JSON 数据文件并计算", source: "backend/rag.py · _load()/students()/plan() 与 tool_* 工具函数",
-      desc: "后端不只是转发数据库，还会加载 JSON（data/rag/*.json）做统计与规划。这个接口返回 6 个班/360 人/96 条排课的概览。",
+      desc: "后端不只是转发数据库，还会加载 JSON（data/rag/*.json）做统计与规划。这个接口返回测试库各表行数 —— 重置后与生产库同规模：1849 条排课、7004 名学生。",
       render: () => <ApiTester lesson={{ api: { method: "GET", path: "/api/learn/health", params: ["无参数（返回测试库各表行数，可对照正式数据）"] } }} />,
     }, {
       id: "be-6", module: "backend", type: "backend", title: "后端源码精读：建表 → 密码 → JWT 令牌", source: "backend/main.py · init_db() / password_hash() / sign_token() / verify_token()",
       desc: "上一课演示「用」接口，这一课看「写」接口。摘录后端最核心的真实代码并逐段解释。",
       render: () => (
         <>
-          <SourceViewer title="① 建表与初始化数据" file="backend/main.py" start={117} end={141} notes={[
-            { lines: "118-119", text: "sqlite3.connect(DB_PATH) 打开数据库文件；CREATE TABLE IF NOT EXISTS 只在表不存在时创建（幂等，可重复运行）。" },
-            { lines: "120-127", text: "executemany 批量写入演示账号；INSERT OR REPLACE 表示有则覆盖、无则插入；密码只存 sha256 哈希，不存明文。" },
-            { lines: "128-136", text: "课表与宿舍先清空再灌入种子数据；用 PRAGMA table_info 检查旧表结构，必要时 DROP 重建（简易迁移思路）。" },
-            { lines: "139-141", text: "commit() 提交事务 —— 不 commit 的写入在连接关闭后会丢失，这是新手最常见的坑。" },
+          <SourceViewer title="① 建表与初始化数据" file="backend/main.py" start={168} end={192} notes={[
+            { lines: "168-171", text: "db_conn() 打开数据库（长连接）；CREATE TABLE IF NOT EXISTS 只在表不存在时创建（幂等，可重复运行）；演示账号用 executemany 批量 INSERT OR REPLACE，密码只存 sha256 哈希，不存明文。" },
+            { lines: "173-179", text: "课表：先建表再 DELETE 清空，从 SCHEDULE_ROWS（data/rag/schedule.json，1849 条）批量灌入 —— 所以后端每次启动都和生产数据保持一致（幂等重建）。" },
+            { lines: "181-187", text: "宿舍成员同样从 STUDENT_ROWS（students.json，7004 人）重建 —— JSON 是数据源，SQLite 是查询层。" },
+            { lines: "189-192", text: "房间锚点覆盖表与公告表；公告只在空表时插入一条系统消息（不会重复）。" },
+            { lines: "194-208", text: "为 1849 行课表 / 7004 行宿舍建 7 个索引（班级+星期+大节、教师、房间、姓名…），最后 commit + ANALYZE 让查询计划器用上索引 —— 这是接口快的直接原因。" },
           ]} />
-          <SourceViewer title="② 签发与校验登录令牌（手写 JWT）" file="backend/main.py" start={146} end={171} notes={[
-            { lines: "146-148", text: "b64()：URL 安全 Base64 编码；JWT 的三段（header.payload.signature）都是这种文本形式。" },
-            { lines: "150-154", text: "sign_token()：header 声明算法 HS256；payload 放用户信息与过期时间 exp；签名用服务端密钥 SECRET 做 HMAC-SHA256。" },
-            { lines: "157-165", text: "verify_token()：取 Bearer 后的令牌，重算签名并用 hmac.compare_digest 恒定时间比较（防时序攻击）。" },
-            { lines: "166-167", text: "再检查 exp 是否过期；任一步失败即抛 401 —— 所以不带令牌访问 /api/me 会看到「缺少登录令牌」。" },
+          <SourceViewer title="② 签发与校验登录令牌（手写 JWT）" file="backend/main.py" start={217} end={236} notes={[
+            { lines: "217-221", text: "sign_token()：header 声明算法 HS256；payload 放用户信息与过期时间 exp；签名用服务端密钥 SECRET 做 HMAC-SHA256。三段都是 URL 安全 Base64。" },
+            { lines: "224-227", text: "verify_token()：先检查 Authorization 头是不是 Bearer 开头，否则直接 401「缺少登录令牌」。" },
+            { lines: "228-231", text: "拆出三段后重算签名，用 hmac.compare_digest 恒定时间比较（防时序攻击）。" },
+            { lines: "232-236", text: "再检查 exp 是否过期；任一步失败即抛 401 —— 所以不带令牌访问 /api/me 会看到「缺少登录令牌」。" },
           ]} />
         </>
       ),
     }, {
-      id: "be-7", module: "backend", type: "backend", title: "后端还是网站服务器：静态托管与 SPA 回退", source: "backend/main.py · 第 621-628 行 app.mount / FileResponse / @app.get(\"/{path:path}\")",
+      id: "be-7", module: "backend", type: "backend", title: "后端还是网站服务器：静态托管与 SPA 回退", source: "backend/main.py · 第 912-919 行 app.mount / FileResponse / @app.get(\"/{path:path}\")",
       desc: "开发时前端跑在 4175（vite），后端跑在 8000，vite 把 /api 开头的请求转发给后端。上线时只需要后端一个服务：它既发接口，也发网页。这段代码就是「一个服务同时当 API 和网站」的写法。",
       render: () => (
         <>
-          <SourceViewer file="backend/main.py" start={621} end={628} notes={[
-            { lines: "621", text: "if (ROOT / \"dist\").exists(): —— dist 是前端 npm run build 的产物目录。目录不存在就不挂载，所以开发时后端不会捣乱。" },
-            { lines: "622-623", text: "app.mount(\"/assets\", StaticFiles(...))：把 /assets 开头的请求直接映射成磁盘文件。3D 页面里的 6.4MB 模型、照片都通过这里下载。" },
-            { lines: "625-628", text: "@app.get(\"/{path:path}\") 是「兜底路由」：任何没被前面 API 匹配到的路径都走它，返回 dist 里对应的文件；找不到文件就返回 index.html。这叫 SPA 回退。" },
+          <SourceViewer file="backend/main.py" start={912} end={919} notes={[
+            { lines: "912", text: "if (ROOT / \"dist\").exists(): —— dist 是前端 npm run build 的产物目录。目录不存在就不挂载，所以开发时后端不会捣乱。" },
+            { lines: "913-914", text: "app.mount(\"/assets\", StaticFiles(...))：把 /assets 开头的请求直接映射成磁盘文件。3D 页面里的 6.7MB 模型、照片都通过这里下载。" },
+            { lines: "916-919", text: "@app.get(\"/{path:path}\") 是「兜底路由」：任何没被前面 API 匹配到的路径都走它，返回 dist 里对应的文件；找不到文件就返回 index.html。这叫 SPA 回退。" },
             { lines: "为什么需要回退", text: "用户在 /learn 页面刷新浏览器时，浏览器会真的向服务器请求 /learn 这个路径。服务器上没有这个文件，如果不回退到 index.html，就会看到 404 —— 这正是所有单页应用必须处理的坑。" },
           ]} />
           <ApiTester lesson={{ api: { method: "GET", path: "/api/health", params: ["无参数（后端还活着吗？顺便返回建筑数/房间锚点数/路网节点数）"] } }} />
@@ -2408,8 +2443,8 @@ function App() {
           "       name,            -- 姓名",
           "       gender,          -- 性别",
           "       class_name,      -- 班级",
-          "       dorm_room_code   -- 宿舍房号，格式：楼栋_CR_楼层_房间号",
-          "FROM rag_students       -- 学生表：360 行（6 个班 × 60 人）",
+          "       dorm_room_code   -- 宿舍房号（内部码），格式：楼栋_CR_楼层_房间号；B11=界面上的12#学生宿舍",
+          "FROM rag_students       -- 学生表：7004 行（133 个班）",
           "LIMIT 10                -- 只取前 10 行，避免一次返回太多数据",
         ].join("\n"),
         note: "SELECT 只决定「看哪些列」，FROM 决定「从哪张表看」，LIMIT 决定「看几行」。把 WHERE 加上就是「只看满足条件的行」。",
@@ -2417,7 +2452,7 @@ function App() {
           { label: "查前 10 名学生", sql: "SELECT student_id, name, gender, class_name, dorm_room_code FROM rag_students LIMIT 10" },
           { label: "按班级统计人数", sql: "-- COUNT(*) 数行数，GROUP BY 按班级分组\nSELECT class_name, COUNT(*) AS students FROM rag_students GROUP BY class_name" },
           { label: "查某宿舍成员", sql: "-- 一个宿舍住 6 人，房号是关联学生的关键字段\nSELECT name, class_name, bed, phone FROM rag_students WHERE dorm_room_code = 'B11_CR_F1_101'" },
-          { label: "查周一课表（计科1班）", sql: "-- weekday: 1=周一 … 5=周五；period: 第几大节\nSELECT period, course, teacher, location FROM rag_schedule WHERE class_name = '计科1班' AND weekday = 1 ORDER BY period" },
+          { label: "查周一课表（计科2501）", sql: "-- weekday: 1=周一 … 5=周五；period: 第几大节\nSELECT period, course, teacher, location FROM rag_schedule WHERE class_name = '计科2501' AND weekday = 1 ORDER BY period" },
         ],
       },
       render: (lesson) => <SqlConsole lesson={lesson} />,
@@ -2444,12 +2479,12 @@ function App() {
       id: "db-3", module: "database", type: "database", title: "INSERT / UPDATE：写入与修改", source: "backend/main.py · notices 插入、room_anchor_overrides 的 INSERT OR REPLACE",
       desc: "写入后校验：先 INSERT 一条公告，再 SELECT 出来确认（测试库可随时重置，不影响正式数据）。",
       sql: {
-        initial: "INSERT INTO notices(content, created_by, created_at) VALUES ('学习中心测试公告：今天 14:00 冬季作息开始', 'learn', 1789000000)",
+        initial: "INSERT INTO notices(content, created_by, created_at) VALUES ('学习中心测试公告：今天 14:30 夏季作息上课', 'learn', 1789000000)",
         presets: [
-          { label: "插入公告", sql: "INSERT INTO notices(content, created_by, created_at) VALUES ('学习中心测试公告：今天 14:00 冬季作息开始', 'learn', 1789000000)" },
+          { label: "插入公告", sql: "INSERT INTO notices(content, created_by, created_at) VALUES ('学习中心测试公告：今天 14:30 夏季作息上课', 'learn', 1789000000)" },
           { label: "查看公告（应看到刚插入的）", sql: "SELECT id, content, created_by FROM notices ORDER BY id DESC LIMIT 5" },
-          { label: "更新一条学生电话", sql: "UPDATE rag_students SET phone = '13900000000' WHERE student_id = '202561001'" },
-          { label: "确认更新结果", sql: "SELECT student_id, name, phone FROM rag_students WHERE student_id = '202561001'" },
+          { label: "更新一条学生电话", sql: "UPDATE rag_students SET phone = '13900000000' WHERE student_id = '2025070104'" },
+          { label: "确认更新结果", sql: "SELECT student_id, name, phone FROM rag_students WHERE student_id = '2025070104'" },
         ],
       },
       render: (lesson) => <SqlConsole lesson={lesson} />,
@@ -2474,7 +2509,7 @@ db.commit()
 rows = db_rows("SELECT id, content FROM notices ORDER BY id DESC LIMIT 3")`,
         notes: [
           { lines: "第 4 行", text: "sqlite3.connect(路径) 打开数据库文件。SQLite 是「一个文件就是一个数据库」，不需要单独装服务，所以特别适合课程作业和小型项目。" },
-          { lines: "第 7 行", text: "db_rows(...) 是项目自定义的封装（backend/main.py 第 189 行），返回 list[dict]，每行是一个字典，取值用 row[\"class_name\"]。这里演示的 SQL 会真的在测试库跑。" },
+          { lines: "第 7 行", text: "db_rows(...) 是项目自定义的封装（backend/main.py 第 294 行），返回 list[dict]，每行是一个字典，取值用 row[\"class_name\"]。这里演示的 SQL 会真的在测试库跑。" },
           { lines: "第 10-11 行", text: "INSERT 后紧跟 db.commit()。不 commit 的话数据只在内存里，连接一关就没了 —— 这是新手最常见的坑。" },
           { lines: "第 14 行", text: "回查是关键：写操作本身没有返回值，必须再 SELECT 一次才能确认结果。运行器会按你写的先后顺序逐条执行，所以这里能看到刚插入的公告。" },
           { lines: "运行器原理", text: "它不执行任意 Python（那太危险），而是用正则把你的 db.execute(\"...\") / db_rows(\"...\") 里的 SQL 抠出来，记录行号，再按顺序重放到测试库。所以 SQL 必须写成字符串字面量。" },
@@ -2483,9 +2518,9 @@ rows = db_rows("SELECT id, content FROM notices ORDER BY id DESC LIMIT 3")`,
       render: (lesson) => (
         <>
           <PyRunner lesson={lesson} />
-          <SourceViewer title="① 后端所有查询的公共入口：db_rows()" file="backend/main.py" start={189} end={194} notes={[
-            { lines: "189-193", text: "db_rows(sql, args)：把「连接 → 执行 → 取行 → 关连接」封装成一个函数并返回 list[dict]，全项目查询都走它。" },
-            { lines: "190-191", text: "row_factory = sqlite3.Row 让结果可按列名取值（row['class_name']），而不是只能按下标。" },
+          <SourceViewer title="① 后端所有查询的公共入口：db_rows()" file="backend/main.py" start={294} end={296} notes={[
+            { lines: "294-296", text: "db_rows(sql, args)：把「执行 → 取行 → 转 dict」封装成一个函数并返回 list[dict]，全项目查询都走它。连接本身由 db_conn() 统一管理（长连接 + row_factory）。" },
+            { lines: "row_factory", text: "db_conn() 里设置 row_factory = sqlite3.Row（第 285 行），结果可按列名取值（row['class_name']），而不是只能按下标。" },
           ]} />
           <SourceViewer title="② 写入路径与安全控制" file="backend/learn.py" start={101} end={146} notes={[
             { lines: "101", text: "FORBIDDEN 列出危险关键字（drop/delete/alter/attach/pragma…），教学控制台一律拒绝。" },
@@ -2500,13 +2535,13 @@ rows = db_rows("SELECT id, content FROM notices ORDER BY id DESC LIMIT 3")`,
       id: "db-5", module: "database", type: "database", title: "两表关联 JOIN：把学生表和课表连起来", source: "backend/rag.py · tool_schedule() 与 tool_dorm()；backend/main.py · dorm_members 表",
       desc: "真实数据不会都塞在一张表里：学生信息在 rag_students，排课在 rag_schedule，两张表靠 class_name（班级）这个共同字段关联。JOIN 就是「按关联字段把两行拼成一行」。",
       sql: {
-        initial: "SELECT s.name, r.weekday, r.period, r.course, r.teacher, r.location\nFROM rag_students s\nJOIN rag_schedule r ON r.class_name = s.class_name\nWHERE s.student_id = '202561001' AND r.weekday = 1\nORDER BY r.period",
-        note: "读法：从 rag_students 取一个学生（别名 s），按 s.class_name = r.class_name 去 rag_schedule（别名 r）里找同一班级的排课，拼成一行。结果是「贾伟祺周一的全部课」。",
+        initial: "SELECT s.name, r.weekday, r.period, r.course, r.teacher, r.location\nFROM rag_students s\nJOIN rag_schedule r ON r.class_name = s.class_name\nWHERE s.student_id = '2025070104' AND r.weekday = 1\nORDER BY r.period",
+        note: "读法：从 rag_students 取一个学生（别名 s），按 s.class_name = r.class_name 去 rag_schedule（别名 r）里找同一班级的排课，拼成一行。结果是「罗慕波周一的全部课」。",
         presets: [
-          { label: "某个学生周一的课（JOIN）", sql: "SELECT s.name, r.weekday, r.period, r.course, r.teacher, r.location\nFROM rag_students s\nJOIN rag_schedule r ON r.class_name = s.class_name\nWHERE s.student_id = '202561001' AND r.weekday = 1\nORDER BY r.period" },
-          { label: "某班每周上几节课（GROUP BY 统计）", sql: "SELECT r.weekday, COUNT(*) AS lessons, COUNT(DISTINCT r.course) AS courses FROM rag_schedule r WHERE r.class_name = '计科1班' GROUP BY r.weekday ORDER BY r.weekday" },
-          { label: "三个班各多少人（IN 多值筛选）", sql: "SELECT class_name, COUNT(*) AS students FROM rag_students WHERE class_name IN ('计科1班','计科2班','计科3班') GROUP BY class_name" },
-          { label: "字符串函数：姓名大写 / 电话位数", sql: "SELECT UPPER(name) AS upper_name, LENGTH(home_phone) AS phone_digits, hometown FROM rag_students WHERE class_name = '计科1班' LIMIT 4" },
+          { label: "某个学生周一的课（JOIN）", sql: "SELECT s.name, r.weekday, r.period, r.course, r.teacher, r.location\nFROM rag_students s\nJOIN rag_schedule r ON r.class_name = s.class_name\nWHERE s.student_id = '2025070104' AND r.weekday = 1\nORDER BY r.period" },
+          { label: "某班每周上几节课（GROUP BY 统计）", sql: "SELECT r.weekday, COUNT(*) AS lessons, COUNT(DISTINCT r.course) AS courses FROM rag_schedule r WHERE r.class_name = '计科2501' GROUP BY r.weekday ORDER BY r.weekday" },
+          { label: "三个班各多少人（IN 多值筛选）", sql: "SELECT class_name, COUNT(*) AS students FROM rag_students WHERE class_name IN ('计科2501','计科2502','计科2503') GROUP BY class_name" },
+          { label: "字符串函数：姓名大写 / 电话位数", sql: "SELECT UPPER(name) AS upper_name, LENGTH(home_phone) AS phone_digits, hometown FROM rag_students WHERE class_name = '计科2501' LIMIT 4" },
         ],
       },
       render: (lesson) => <SqlConsole lesson={lesson} />,
@@ -2515,11 +2550,11 @@ rows = db_rows("SELECT id, content FROM notices ORDER BY id DESC LIMIT 3")`,
       id: "db-6", module: "database", type: "database", title: "主键与约束：为什么乱插数据会失败", source: "backend/learn.py · SCHEMA_SQL 的 PRIMARY KEY；backend/main.py · INSERT OR REPLACE 写入锚点",
       desc: "表结构里写死的规则，数据库会强制执行。学号是主键，重复插入同一个学号会被直接拒绝——这正是「脏数据进不来」的原因。先看初始查询，再点「① 重复插入」看报错，最后点「② 确认数据没被污染」。",
       sql: {
-        initial: "SELECT student_id, name, class_name FROM rag_students WHERE student_id = '202561001'",
-        note: "初始这条查询用来确认 202561001 已经存在。接着点「① 重复插入」，数据库会抛 UNIQUE constraint failed，一行都不会被写入 —— 业务代码因此不必自己写重复检查。",
+        initial: "SELECT student_id, name, class_name FROM rag_students WHERE student_id = '2025070104'",
+        note: "初始这条查询用来确认 2025070104 已经存在。接着点「① 重复插入」，数据库会抛 UNIQUE constraint failed，一行都不会被写入 —— 业务代码因此不必自己写重复检查。",
         presets: [
-          { label: "① 重复插入（会被拒绝）", sql: "INSERT INTO rag_students(student_id, name, class_name) VALUES ('202561001', '重复学号', '计科2班')" },
-          { label: "② 确认没被污染", sql: "SELECT student_id, name, class_name FROM rag_students WHERE student_id = '202561001'" },
+          { label: "① 重复插入（会被拒绝）", sql: "INSERT INTO rag_students(student_id, name, class_name) VALUES ('2025070104', '重复学号', '计科2501')" },
+          { label: "② 确认没被污染", sql: "SELECT student_id, name, class_name FROM rag_students WHERE student_id = '2025070104'" },
           { label: "③ 插入一条新公告", sql: "INSERT INTO notices(content, created_by, created_at) VALUES ('事务演示：先插公告', 'learn', 1789000002)" },
           { label: "④ 修改这条公告", sql: "UPDATE notices SET content = '事务演示：公告已被修改' WHERE created_by = 'learn' AND content = '事务演示：先插公告'" },
           { label: "⑤ 回查结果", sql: "SELECT id, content, created_by FROM notices WHERE created_by = 'learn' ORDER BY id DESC LIMIT 3" },
@@ -2563,8 +2598,8 @@ rows = db_rows("SELECT id, content FROM notices ORDER BY id DESC LIMIT 3")`,
     {
       id: "rag-3", module: "rag", type: "rag", title: "数据是怎么造的：生成器 + 冲突校验", source: "scripts/generate_rag_data.py · build_schedule()/validation.json",
       desc: "排课必须保证「班级×大节、教师×大节、教室×大节」三重不冲突，宿舍要同性别、容量≤6。生成器内置校验，输出 validation.json（全 PASS）。",
-      render: () => <SqlConsole lesson={{ sql: { initial: "SELECT class_name, course, teacher, weekday, period, location FROM rag_schedule WHERE class_name = '计科1班' ORDER BY weekday, period", presets: [
-        { label: "看计科1班完整周课表", sql: "SELECT class_name, course, teacher, weekday, period, location FROM rag_schedule WHERE class_name = '计科1班' ORDER BY weekday, period" },
+      render: () => <SqlConsole lesson={{ sql: { initial: "SELECT class_name, course, teacher, weekday, period, location FROM rag_schedule WHERE class_name = '计科2501' ORDER BY weekday, period", presets: [
+        { label: "看计科2501完整周课表", sql: "SELECT class_name, course, teacher, weekday, period, location FROM rag_schedule WHERE class_name = '计科2501' ORDER BY weekday, period" },
         { label: "查教室冲突（应无结果）", sql: "SELECT location, weekday, period, COUNT(*) AS c FROM rag_schedule WHERE location NOT LIKE 'POI%' GROUP BY location, weekday, period HAVING c > 1" },
         { label: "查教师时间冲突（应无结果）", sql: "SELECT teacher, weekday, period, COUNT(*) AS c FROM rag_schedule GROUP BY teacher, weekday, period HAVING c > 1" },
       ] } }} />,
@@ -2578,14 +2613,14 @@ rows = db_rows("SELECT id, content FROM notices ORDER BY id DESC LIMIT 3")`,
       desc: "这是问答系统的心脏：一个函数里完成「解析时间 → 判断意图 → 调工具检索 → 组装答案与溯源」。",
       render: () => (
         <>
-          <SourceViewer title="① ask()：从提问到结构化结果的调度中心" file="backend/rag.py" start={308} end={360} notes={[
-            { lines: "308-310", text: "ask(body) 接收 AskBody（Pydantic 校验过的请求体），取出 question 与可选的视角班级 class_name。" },
-            { lines: "311-320", text: "先用 parse_time() 解析今天/明天/周X/第N大节，再按关键字判断是「几点下课」这类作息问题还是其他意图。" },
-            { lines: "322-345", text: "宿舍、课表、统计等分支各自调用对应工具函数（确定性检索），并把命中的源记录放进 sources[] 做溯源。" },
-            { lines: "355-370", text: "需要路径时调用 tool_route()：Dijkstra 算室外最短路 + 追加室内锚点段，最后返回 JSON 给前端画轨迹。" },
+          <SourceViewer title="① ask()：从提问到结构化结果的调度中心" file="backend/rag.py" start={491} end={545} notes={[
+            { lines: "491-496", text: "ask(body) 接收 AskBody（Pydantic 校验过的请求体），取出 question 与可选的视角班级 class_name；parse_time() 解析今天/明天/周X。" },
+            { lines: "498-501", text: "按关键字先判断意图：路线（怎么走/导航）、课表（上课/教室）、作息（几点下课），再查 tool_find_students() 看是不是在问某个人。" },
+            { lines: "503-513", text: "regime_of_ask()：作息按日期自动选夏/冬；用户显式问「冬季」则覆盖 —— 保证上课时间回答准确。" },
+            { lines: "515 起", text: "宿舍、课表、统计等分支各自调用对应工具函数（tool_schedule/tool_dorm/tool_route…，确定性检索），并把命中的源记录放进 sources[] 做溯源。" },
           ]} />
-          <SourceViewer title="② 评测集：用数据证明问答准确" file="backend/rag.py" start={485} end={500} notes={[
-            { lines: "485-499", text: "每条用例写明问题、期望意图、期望答案片段；eval_run() 跑一遍统计通过率（当前 12/12）。" },
+          <SourceViewer title="② 评测集：用数据证明问答准确" file="backend/rag.py" start={800} end={820} notes={[
+            { lines: "800 起", text: "每条用例写明问题、期望意图、期望答案片段；eval_run() 跑一遍统计通过率（当前 12/12）。" },
             { lines: "动态断言", text: "「第3大节几点下课」的期望时刻随夏/冬作息动态生成，避免写死时间导致误判。" },
           ]} />
         </>
@@ -2677,18 +2712,23 @@ rows = db_rows("SELECT id, content FROM notices ORDER BY id DESC LIMIT 3")`,
             { lines: "66-79", text: "不带圆角时走「手动拼顶点」的快路径：先建一个单位立方体网格并缓存复用，再给每个实例设 location/scale —— 和网页端 boxGeometry args=[w,h,d] 是同一件事。" },
             { lines: "80-91", text: "带圆角时改用 Blender 操作符 primitive_cube_add 并加 Bevel 修改器，让建筑边角柔和，这一步是纯几何数据处理，和「材质/灯光」无关。" },
           ]} />
-          <SourceViewer title="② 前端：一个建筑组件 = 楼体 + 窗带 + 点击" file="src/App.jsx" start={338} end={358} notes={[
-            { lines: "339", text: "const y = building.h / 2 —— 建模台 L2 讲的就是这一行。它保证楼不陷进地里。" },
-            { lines: "340-343", text: "windowRows 与 count 决定窗户密度：层数取 min(floors, 5)，每层窗户数按宽度算 Math.max(3, floor(w/4))。" },
-            { lines: "344-357", text: "两层循环（楼层 × 横向序号）算出每扇窗的 [x,y,z]，窗是一个很薄的小盒子 <boxGeometry args={[1.25,0.9,0.12]} /> —— 建模台 L4 的窗带是它的简化版。" },
-            { lines: "359-393", text: "楼体本身：普通楼用 boxGeometry，弧形楼（体育馆）用 cylinderGeometry 加开口角度参数，尺寸都来自 building 数据对象。" },
+          <SourceViewer title="② 前端：一个建筑组件 = 楼体 + 窗带 + 点击" file="src/App.jsx" start={361} end={415} notes={[
+            { lines: "362", text: "const y = building.h / 2 —— 建模台 L2 讲的就是这一行。它保证楼不陷进地里。" },
+            { lines: "363-374", text: "windowRows 与 count 决定窗户密度：层数取 min(floors, 5)，每层窗户数按宽度算 Math.max(3, floor(w/4))。" },
+            { lines: "377", text: "窗是一个很薄的小盒子 <boxGeometry args={[1.25,0.9,0.12]} /> —— 建模台 L4 的窗带是它的简化版。" },
+            { lines: "405 起", text: "楼体本身：普通楼用 boxGeometry，弧形楼（体育馆）用 cylinderGeometry 加开口角度参数，尺寸都来自 building 数据对象。" },
           ]} />
-          <SourceViewer title="③ 前端：加载模型 + useFrame 驱动动画与点击交互" file="src/App.jsx" start={612} end={680} notes={[
-            { lines: "622", text: "useGLTF(\"/assets/yueyang_campus.glb\") 读取 Blender 导出的模型；下面 traverse 遍历所有网格，用名字正则解析出 building_code 与 room_code。" },
-            { lines: "660-680", text: "useFrame((_, delta) => {...}) 每帧执行：按建筑编号判断「是否选中 / 是否被抬起 / 是否有高亮」，再算出目标高度。" },
-            { lines: "673", text: "THREE.MathUtils.damp(当前位置, 目标位置, 5.5, delta)：带阻尼的平滑插值，所以楼是「弹起来」而不是「瞬间跳上去」。建模台 L6 用的同一个函数。" },
-            { lines: "295", text: "const LIFT_OFFSET = 30 —— 被定位选中的楼抬升 30 米，普通点击只抬 5.5 米，高亮楼抬 1.5 米，三个层级让用户一眼分清状态。" },
-            { lines: "713", text: "onClick 从被点中的网格向上找 building_code，再回调 onSelect 交给 React 改状态 —— 3D 事件 → 界面状态 的完整链路。" },
+          <SourceViewer title="③ 前端：加载模型 + 静态合批预处理" file="src/App.jsx" start={684} end={793} notes={[
+            { lines: "684", text: "useGLTF(\"/assets/yueyang_campus.glb\") 读取 Blender 导出的模型；下面 traverse 遍历所有网格，用名字正则解析出 building_code。" },
+            { lines: "694-746", text: "材质共享：同一栋楼共用同一份材质实例（约 950 份 → 约 200 份），减少 uniform 刷新与 program 切换 —— 这是材质动画快的前提。" },
+            { lines: "775-791", text: "实例化合批：同一几何体出现 ≥6 次的类别（树木 606 个 → 5 个批次）合并成 InstancedMesh，并关掉拾取。" },
+            { lines: "793-845", text: "几何合批：几何体各不相同的道路/广场（450+ 个）按材质烘焙世界矩阵后 mergeGeometries 合成少数 Mesh —— WebGL geometries 722 → 168，交互期每帧 draw call 953 → 405。" },
+          ]} />
+          <SourceViewer title="④ 前端：useFrame 驱动动画 + onClick 点击交互" file="src/App.jsx" start={861} end={965} notes={[
+            { lines: "861-866", text: "useFrame((_, delta) => {...}) 每帧执行；demand 渲染模式下常态直接早退（0 帧重绘），动画没收敛时 invalidate() 把下一帧续上。" },
+            { lines: "834-850", text: "目标高度三层级：liftOf(编号)（= 楼栋自身高度，BUILDING_LIFT 第 299 行）弹起显示内剖、选中抬 5.5、高亮抬 1.5 —— 三个层级让用户一眼分清状态。" },
+            { lines: "904", text: "THREE.MathUtils.damp(当前位置, 目标位置, 5.5, delta)：带阻尼的平滑插值，所以楼是「弹起来」而不是「瞬间跳上去」。建模台 L6 用的同一个函数。" },
+            { lines: "943-951", text: "onClick 从被点中的网格向上找 building_code，再回调 onSelect 交给 React 改状态；event.delta > 4 判定为拖拽视角、不当作点击 —— 3D 事件 → 界面状态 的完整链路。" },
           ]} />
         </>
       ),

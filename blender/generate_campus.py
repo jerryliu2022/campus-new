@@ -1,16 +1,24 @@
 """岳阳学院智慧校园数字孪生 - Blender 5.1 场景生成器
 
 运行方式：blender -b --python blender/generate_campus.py
-输出：blender/yueyang_campus.blend、public/assets/yueyang_campus.glb、data/room_anchors.json、data/road_graph.json
+输出：blender/yueyang_campus.blend、public/assets/yueyang_campus.glb、data/room_anchors.json
 坐标约定：米制，Y 轴向上，原点为校园地理中心，X-Z 为校园平面。
+
+房间网格（层数 / 每层 4 列(进深 Z) × 5 行(面宽 X) / 编号 101+列*5+行）统一来自
+scripts/campus_program.py —— 与 data/room_anchors.json 的唯一数据源保持一致。
 """
+import bmesh
 import bpy
 import json
 import math
 import os
+import sys
 from mathutils import Vector
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(ROOT, 'scripts'))
+import campus_program as CP  # noqa: E402
+
 ASSET_DIR = os.path.join(ROOT, 'public', 'assets')
 DATA_DIR = os.path.join(ROOT, 'data')
 os.makedirs(ASSET_DIR, exist_ok=True)
@@ -100,11 +108,15 @@ def cylinder(name, location, radius, depth, mat, vertices=12, collection=None):
         collection.objects.link(obj)
     return obj
 
-def arc_prism(name, location, width, depth, height, mat, collection=None):
-    """Create a semicircular annular building mass (open toward -Z)."""
-    outer = max(width * 0.5, depth * 1.2)
-    inner = max(outer - depth, outer * 0.32)
+def arc_prism(name, location, width, depth, height, mat, collection=None, mirror=False):
+    """Create a semicircular annular building mass.
+
+    mirror=False → 凹口朝南（凸向 +Z），即 2#教学综合楼；
+    mirror=True  → 关于中心镜像（凸向 -Z），即 1#教学综合楼；两者同心合成完整圆环。
+    """
+    outer, inner = CP._arc_radii(width, depth)
     segments = 32
+    sign = -1.0 if mirror else 1.0
     verts = []
     # Angles run from 0..pi, giving a U-shaped footprint in X/Z.
     for y in (0.0, height):
@@ -113,7 +125,7 @@ def arc_prism(name, location, width, depth, height, mat, collection=None):
                 a = math.pi * i / segments
                 world_x = location[0] + radius * math.cos(a)
                 world_y = location[1] + y
-                world_z = location[2] + radius * math.sin(a)
+                world_z = location[2] + sign * radius * math.sin(a)
                 verts.append((world_x, -world_z, world_y))
     n = segments + 1
     faces = []
@@ -158,6 +170,60 @@ def facade_strip(name, x, y, z, width, depth, mat, code, semantic_name, collecti
     obj = cube(name, (x, y, z), (width, .34, depth), mat, 0, collection)
     return tag_asset(obj, code, semantic_name)
 
+def merge_building_shell(code, name, collection):
+    """把一栋楼的墙体/屋顶/腰带/竖挺/雨棚/台阶/窗等合并为**单个 Mesh**。
+
+    材质各自保留为材质槽（glTF 导出时是同一个 node 上的多个 primitive），
+    因此「外墙 + 窗户」在运行时是一个对象：点击弹起可整体隐藏，落回整体恢复。
+
+    纯 bpy.data / bmesh API 实现，不依赖 bpy.ops.object.join 的上下文，
+    在 --background 模式下同样可靠（ops 版本需要 temp_override，容易失败）。
+    变换用 matrix_basis 而不是 matrix_world —— 后者是 depsgraph 缓存，
+    刚创建的对象还没求值，直接读会拿到单位矩阵。
+    """
+    parts = [o for o in collection.objects if o.type == 'MESH' and o.get('lod') != 'LOD2']
+    if not parts:
+        return None
+    if len(parts) == 1:
+        return parts[0]
+
+    merged = bpy.data.meshes.new(f'{code}_shell_MESH')
+    target_mats, mat_lookup = [], {}
+    bm = bmesh.new()
+    src_faces = 0
+    for obj in parts:
+        layer = obj.data.copy()
+        layer.transform(obj.matrix_basis)
+        remap = []
+        for slot in layer.materials:
+            key = slot.name if slot else '__none__'
+            if key not in mat_lookup:
+                mat_lookup[key] = len(target_mats)
+                target_mats.append(slot)
+            remap.append(mat_lookup[key])
+        for poly in layer.polygons:
+            src_faces += 1
+            poly.material_index = remap[poly.material_index] if poly.material_index < len(remap) else 0
+        bm.from_mesh(layer)          # from_mesh 是追加语义：多次调用即合并几何
+        bpy.data.meshes.remove(layer)
+
+    bm.to_mesh(merged)
+    bm.free()
+    for slot in target_mats:
+        if slot is not None:
+            merged.materials.append(slot)
+
+    shell = bpy.data.objects.new(f'{code}_LOD1_shell', merged)
+    collection.objects.link(shell)
+    tag_asset(shell, code, name)
+    shell['merged_parts'] = len(parts)
+    for obj in parts:
+        bpy.data.objects.remove(obj, do_unlink=True)
+    print(f'  [合并] {code} {len(parts):4d} 个部件 -> 1 个 Mesh，'
+          f'{len(target_mats)} 个材质槽，面数 {len(merged.polygons)}/{src_faces}')
+    return shell
+
+
 def building_assets(spec, rooms):
     code, name, kind, x, z, w, d, h, color, accent, shape = spec
     col = bpy.data.collections.new(f'{code}_{name}')
@@ -165,9 +231,10 @@ def building_assets(spec, rooms):
     body_mat = material(f'{code}_body', color, 0.025, 0.58)
     concrete_mat = material(f'{code}_concrete', '#e7e8e2', 0.01, .7)
     dark_mat = material(f'{code}_dark', '#263b42', .08, .38)
-    if shape == 'arc':
-        body = arc_prism(f'{code}_LOD1_shell', (x, 0, z), w, d, h, body_mat, col)
-        body['shape'] = 'arc'
+    if shape in ('arc', 'arc_mirror'):
+        is_mirror = shape == 'arc_mirror'
+        body = arc_prism(f'{code}_LOD1_shell', (x, 0, z), w, d, h, body_mat, col, mirror=is_mirror)
+        body['shape'] = shape
     elif shape == 'u':
         wing_w = max(8, w * .28)
         back_d = max(7, d * .3)
@@ -189,8 +256,8 @@ def building_assets(spec, rooms):
     for old_col in list(body.users_collection): old_col.objects.unlink(body)
     col.objects.link(body)
     tag_asset(body, code, name)
-    if shape == 'arc':
-        roof = arc_prism(f'{code}_roof', (x, h, z), w + 1.2, max(0.8, d * 0.3), 0.5, material(f'{code}_roof', '#71805f', 0.02, 0.86), col)
+    if shape in ('arc', 'arc_mirror'):
+        roof = arc_prism(f'{code}_roof', (x, h, z), w + 1.2, max(0.8, d * 0.3), 0.5, material(f'{code}_roof', '#71805f', 0.02, 0.86), col, mirror=(shape == 'arc_mirror'))
     else:
         roof = cube(f'{code}_roof', (x, h + 0.25, z), (w + 1, 0.5, d + 1), material(f'{code}_roof', '#a9b2b2', 0.12, 0.5), 0.18, col)
     tag_asset(roof, code, name)
@@ -208,14 +275,14 @@ def building_assets(spec, rooms):
             for side, wz in (('F', z + d / 2 + .11), ('B', z - d / 2 - .11)):
                 win = cube(f'{code}_window_{side}{floor+1}_{i+1}', (wx, wy, wz), (1.42, floor_height * .46, .13), window_mat, 0, col)
                 tag_asset(win, code, name)
-        if shape != 'arc':
+        if shape not in ('arc', 'arc_mirror'):
             for i in range(side_count):
                 wz = z - d / 2 + 1.8 + i * ((d - 3.6) / max(1, side_count - 1))
                 for side, wx in (('L', x - w / 2 - .11), ('R', x + w / 2 + .11)):
                     win = cube(f'{code}_window_{side}{floor+1}_{i+1}', (wx, wy, wz), (.13, floor_height * .46, 1.35), window_mat, 0, col)
                     tag_asset(win, code, name)
     # 沙盘实景中各单体均有明显的深色竖向端墙、首层雨棚与女儿墙。
-    if shape != 'arc':
+    if shape not in ('arc', 'arc_mirror'):
         for side in (-1, 1):
             fin = cube(f'{code}_vertical_fin_{side}', (x + side * (w / 2 - .7), h * .52, z + d / 2 + .15), (1.0, h * .82, .3), dark_mat, .04, col)
             tag_asset(fin, code, name)
@@ -252,18 +319,19 @@ def building_assets(spec, rooms):
         for bay in range(3):
             roof_piece = gable_roof(f'{code}_roof_bay_{bay}', x - w / 2 + bay_width * (bay + .5), h + .45, z, bay_width + .35, d + .8, 3.1, roof_mat, col)
             tag_asset(roof_piece, code, name)
-    # LOD2 房间单元：每栋楼生成前后两排独立房间 mesh，路网永不进入建筑 footprint。
-    room_width = max(3.2, (w - 2) / 5)
-    room_floor_count = min(3, int(h // 3))
-    room_materials = {(floor, row): material(f'{code}_room_{floor}_{row}', accent, 0.08, 0.48) for floor in range(room_floor_count) for row in range(2)}
-    for floor in range(room_floor_count):
-        for row, z_offset in enumerate((-d / 2 + 1.3, d / 2 - 1.3)):
-            for index in range(5):
-                room_code = f'{code}_CR_F{floor + 1}_{101 + row * 5 + index}'
-                rx = x - w / 2 + 1.3 + index * room_width
-                room = cube(room_code, (rx, floor * 3 + 1.45, z + z_offset), (room_width - .2, 3.0, 12.0), room_materials[(floor, row)], 0, col)
-                room['room_code'] = room_code; room['building_code'] = code; room['floor'] = floor + 1; room['room_type'] = kind; room['lod'] = 'LOD2'
-                rooms.append({'room_code': room_code, 'semantic_name': f'{name}·{kind}·{code}{floor+1}层{101 + row * 5 + index}', 'anchor_world': [round(rx, 2), round(floor * 3 + 1.45, 2), round(z + z_offset, 2)], 'bbox_min': [round(rx - room_width / 2, 2), round(floor * 3 - 0.05, 2), round(z + z_offset - 6.0, 2)], 'bbox_max': [round(rx + room_width / 2, 2), round(floor * 3 + 2.95, 2), round(z + z_offset + 6.0, 2)], 'orientation': [0, 0, 0], 'building_code': code, 'floor': floor + 1, 'room_type': kind, 'college_code': 'YY'} )
+    # 外壳合并：必须在房间数据生成之前调用，此时 collection 里只有外壳部件。
+    # 合并后整栋楼只占 1 个 glTF node（原来光窗户就有 220~290 个 node/栋）。
+    merge_building_shell(code, name, col)
+
+    # LOD2 房间单元：层数与每层网格统一取自 scripts/campus_program.py
+    #   教学楼/实验楼 5 层 × (4 列进深 Z × 5 行面宽 X) = 每层 20 间，编号 101~120
+    #   宿舍 6 层 × 20 间（每间 6 人）；图书馆地上 9 层。
+    spec_dict = {'id': code, 'name': name, 'type': kind, 'shape': shape,
+                 'x': x, 'z': z, 'w': w, 'd': d, 'h': h}
+    # 房间**只产出锚点数据**，不再生成 Blender 对象：前端「弹起内剖」用
+    # room_anchors.json 自行生成立方体，glb 里的房间节点纯属冗余
+    # （原来 2720 个 node + 2720 次 primitive_cube_add，是生成耗时的大头）。
+    rooms.extend(CP.build_rooms(spec_dict))
 
 def tree_assets():
     tree_col = bpy.data.collections.new('生活场景_树木实例')
@@ -494,7 +562,18 @@ def main():
     rooms = []
     for spec in BUILDINGS: building_assets(spec, rooms)
     campus_ground(); tree_assets(); create_road_graph(); reference_photo_planes(); setup_render()
-    with open(os.path.join(DATA_DIR, 'room_anchors.json'), 'w', encoding='utf-8') as f: json.dump({'coordinate_system': {'unit': 'meter', 'up_axis': 'Y', 'origin': 'campus_geographic_center'}, 'rooms': rooms}, f, ensure_ascii=False, indent=2)
+    anchors = {
+        'coordinate_system': {'unit': 'meter', 'up_axis': 'Y', 'origin': 'campus_geographic_center'},
+        'grid_spec': {
+            'rooms_per_floor': 20,
+            'layout': '4 列(进深 Z) × 5 行(面宽 X)',
+            'numbering': '101 + 列序*5 + 行序',
+            'floor_height_m': CP.FLOOR_HEIGHT,
+        },
+        'rooms': rooms,
+    }
+    with open(os.path.join(DATA_DIR, 'room_anchors.json'), 'w', encoding='utf-8') as f:
+        json.dump(anchors, f, ensure_ascii=False, indent=2)
     bpy.context.scene['project_name'] = '岳阳学院智慧校园数字孪生'
     bpy.context.scene['source_reference'] = 'public/assets/reference/view_01.jpg … view_16.jpg; multi-angle campus maquette capture'
     bpy.context.scene['layout_source'] = 'data/campus_layout.json'
@@ -509,9 +588,17 @@ def main():
     for obj in bpy.data.objects:
         if obj.type == 'MESH' and not obj.hide_render:
             obj.select_set(True)
+    glb_path = os.path.join(ASSET_DIR, 'yueyang_campus.glb')
+    # export_texcoords=False：全场景 0 张贴图，UV 纯属浪费（实测占 1.88MB / 22%）。
+    # 导出后必须打印体积——原来异常被静默吞掉，看不出导出到底成没成。
     try:
-        bpy.ops.export_scene.gltf(filepath=os.path.join(ASSET_DIR, 'yueyang_campus.glb'), export_format='GLB', export_apply=True, use_selection=True)
+        bpy.ops.export_scene.gltf(filepath=glb_path, export_format='GLB', export_apply=True,
+                                  use_selection=True, export_texcoords=False)
+        print(f'GLB exported: {os.path.getsize(glb_path) / 1024 / 1024:.2f} MB')
     except Exception as exc:
-        print(f'GLB export skipped: {exc}')
+        print(f'GLB export 带 export_texcoords 失败，回退默认参数: {exc}')
+        bpy.ops.export_scene.gltf(filepath=glb_path, export_format='GLB', export_apply=True,
+                                  use_selection=True)
+        print(f'GLB exported (fallback): {os.path.getsize(glb_path) / 1024 / 1024:.2f} MB')
 
 if __name__ == '__main__': main()

@@ -1,16 +1,33 @@
 {
- "generated_at": "2026-09-09 14:45:46",
- "students": 360,
- "classes": 6,
- "dorm_rooms": 60,
- "schedule_rows": 96,
+ "generated_at": "2026-09-21 01:39:55",
+ "semester": "2026-2027学年第一学期",
+ "grades": {
+  "2025级": 3500,
+  "2026级": 3504
+ },
+ "classes": 133,
+ "students": 7004,
+ "schedule_rows": 1849,
+ "rooms_used": 508,
+ "dorm_rooms_used": 1168,
+ "teachers": 311,
+ "courses": 144,
  "violations": [],
  "checks": {
-  "班级大节唯一": "PASS",
-  "教师大节唯一": "PASS",
-  "教室大节唯一": "PASS",
-  "宿舍容量≤6": "PASS",
+  "班级时间无冲突": "PASS",
+  "教室时间无冲突": "PASS",
+  "教师时间无冲突": "PASS",
+  "同班同课每日≤2大节": "PASS",
+  "同班同课每周≤4大节": "PASS",
+  "周末无排课": "PASS",
+  "课程按连续周数安排": "PASS",
+  "仅教学楼/实验楼排课": "PASS",
+  "教室60座容得下": "PASS",
+  "宿舍每间≤6人": "PASS",
   "宿舍分性别": "PASS",
-  "宿舍房间已建模": "PASS"
- }
+  "宿舍房间已建模": "PASS",
+  "学生归属班级有效": "PASS",
+  "学号全校唯一": "PASS"
+ },
+ "all_pass": true
 }

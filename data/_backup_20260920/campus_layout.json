@@ -4,15 +4,8 @@
     "up_axis": "Y",
     "origin": "campus_geographic_center",
     "north_axis": "+Z",
-    "model_extent_m": [
-      528,
-      427
-    ],
-    "spawn": [
-      0,
-      2,
-      -188
-    ]
+    "model_extent_m": [528, 427],
+    "spawn": [0, 2, -188]
   },
   "source_views": [
     "01_南向主轴",
@@ -91,14 +84,13 @@
       "region": "central_axis",
       "x": -58,
       "z": -125,
-      "w": 46,
-      "d": 30,
-      "h": 21.9,
+      "w": 40,
+      "d": 26,
+      "h": 22,
       "floors": 5,
       "color": "#dbe0df",
       "accent": "#8cb6bd",
-      "shape": "u",
-      "floor_height": 4.2
+      "shape": "u"
     },
     {
       "id": "B02",
@@ -107,14 +99,13 @@
       "region": "central_axis",
       "x": 58,
       "z": -125,
-      "w": 46,
-      "d": 30,
-      "h": 21.9,
+      "w": 40,
+      "d": 26,
+      "h": 22,
       "floors": 5,
       "color": "#dbe0df",
       "accent": "#8cb6bd",
-      "shape": "u",
-      "floor_height": 4.2
+      "shape": "u"
     },
     {
       "id": "B03",
@@ -123,14 +114,13 @@
       "region": "central_axis",
       "x": -58,
       "z": -67,
-      "w": 46,
-      "d": 30,
-      "h": 21.9,
+      "w": 40,
+      "d": 26,
+      "h": 22,
       "floors": 5,
       "color": "#d4dcdc",
       "accent": "#70a9bb",
-      "shape": "u",
-      "floor_height": 4.2
+      "shape": "u"
     },
     {
       "id": "B04",
@@ -139,66 +129,73 @@
       "region": "central_axis",
       "x": 58,
       "z": -67,
-      "w": 46,
-      "d": 30,
-      "h": 21.9,
+      "w": 40,
+      "d": 26,
+      "h": 22,
       "floors": 5,
       "color": "#d4dcdc",
       "accent": "#70a9bb",
-      "shape": "u",
-      "floor_height": 4.2
+      "shape": "u"
     },
     {
       "id": "B05",
-      "name": "1#图书馆",
-      "type": "LIB",
+      "name": "4#实验综合楼",
+      "type": "LB",
       "region": "central_axis",
       "x": 0,
       "z": -10,
       "w": 51,
       "d": 33,
-      "h": 45,
+      "h": 40,
       "floors": 9,
-      "color": "#c9d2d4",
+      "color": "#bfc9cb",
       "accent": "#5f8998",
-      "shape": "tower",
-      "floor_height": 4.2
+      "shape": "tower"
     },
     {
       "id": "B06",
-      "name": "2#教学综合楼",
-      "type": "CR",
+      "name": "1#图书馆",
+      "type": "LIB",
       "region": "cultural_core",
       "x": 0,
       "z": 70,
       "w": 95,
       "d": 31,
-      "h": 21.9,
-      "floors": 5,
+      "h": 16,
+      "floors": 4,
       "color": "#e7e2d7",
       "accent": "#d29c45",
-      "shape": "arc",
-      "floor_height": 4.2,
-      "label_offset": [
-        0,
-        40
-      ]
+      "shape": "arc"
+    },
+    {
+      "id": "B07",
+      "name": "9#综合服务楼",
+      "type": "OTH",
+      "region": "cultural_core",
+      "x": 53,
+      "z": 101,
+      "w": 42,
+      "d": 22,
+      "h": 12,
+      "floors": 2,
+      "color": "#e9e2d4",
+      "accent": "#d7a74f",
+      "shape": "rect"
     },
     {
       "id": "B08",
       "name": "8#会堂",
       "type": "GYM",
       "region": "sports_west",
-      "x": -156,
-      "z": 66,
+      "x": -154,
+      "z": 98,
       "w": 62,
       "d": 37,
       "h": 13,
       "floors": 2,
       "color": "#e3e8e4",
       "accent": "#e68b75",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B09",
@@ -213,8 +210,22 @@
       "floors": 2,
       "color": "#dce2de",
       "accent": "#df867a",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
+    },
+    {
+      "id": "B10",
+      "name": "24#看台及地下车库",
+      "type": "OTH",
+      "region": "sports_west",
+      "x": -91,
+      "z": 94,
+      "w": 29,
+      "d": 18,
+      "h": 10,
+      "floors": 2,
+      "color": "#d9dedc",
+      "accent": "#a8bfc1",
+      "shape": "rect"
     },
     {
       "id": "B11",
@@ -225,12 +236,11 @@
       "z": 34,
       "w": 40,
       "d": 26,
-      "h": 25,
-      "floors": 6,
+      "h": 17,
+      "floors": 4,
       "color": "#d9dedc",
       "accent": "#6f9eae",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B12",
@@ -241,12 +251,11 @@
       "z": 34,
       "w": 40,
       "d": 26,
-      "h": 25,
-      "floors": 6,
+      "h": 17,
+      "floors": 4,
       "color": "#d6dcdb",
       "accent": "#6f9eae",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B13",
@@ -257,12 +266,11 @@
       "z": 86,
       "w": 40,
       "d": 26,
-      "h": 25,
-      "floors": 6,
+      "h": 18,
+      "floors": 4,
       "color": "#d0d9d9",
       "accent": "#7caab7",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B14",
@@ -273,12 +281,11 @@
       "z": 86,
       "w": 40,
       "d": 26,
-      "h": 25,
-      "floors": 6,
+      "h": 18,
+      "floors": 4,
       "color": "#d0d9d9",
       "accent": "#7caab7",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B15",
@@ -289,28 +296,41 @@
       "z": 137,
       "w": 44,
       "d": 26,
-      "h": 25,
-      "floors": 6,
+      "h": 17,
+      "floors": 4,
       "color": "#d9dedc",
       "accent": "#709ead",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B16",
       "name": "17#学生宿舍",
       "type": "DOR",
       "region": "academic_northwest",
-      "x": -156,
-      "z": 135,
+      "x": -108,
+      "z": 134,
       "w": 40,
       "d": 24,
-      "h": 25,
-      "floors": 6,
+      "h": 17,
+      "floors": 4,
       "color": "#d9dfdf",
       "accent": "#79aeb7",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
+    },
+    {
+      "id": "B17",
+      "name": "7#实训实习楼 A",
+      "type": "LB",
+      "region": "academic_northwest",
+      "x": -48,
+      "z": 139,
+      "w": 42,
+      "d": 24,
+      "h": 17,
+      "floors": 4,
+      "color": "#d9dfdf",
+      "accent": "#79aeb7",
+      "shape": "rect"
     },
     {
       "id": "B18",
@@ -319,14 +339,13 @@
       "region": "sports_west",
       "x": -210,
       "z": 135,
-      "w": 46,
-      "d": 30,
-      "h": 21.9,
-      "floors": 5,
+      "w": 40,
+      "d": 24,
+      "h": 21,
+      "floors": 6,
       "color": "#cfd9d8",
       "accent": "#80b696",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B19",
@@ -337,12 +356,11 @@
       "z": -79,
       "w": 40,
       "d": 24,
-      "h": 25,
+      "h": 21,
       "floors": 6,
       "color": "#cfd9d8",
       "accent": "#80b696",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B20",
@@ -353,12 +371,11 @@
       "z": -79,
       "w": 40,
       "d": 24,
-      "h": 25,
+      "h": 21,
       "floors": 6,
       "color": "#cfd9d8",
       "accent": "#80b696",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     },
     {
       "id": "B21",
@@ -373,92 +390,7 @@
       "floors": 2,
       "color": "#e3d6c1",
       "accent": "#d28d51",
-      "shape": "rect",
-      "floor_height": 4.2
-    },
-    {
-      "id": "B22",
-      "name": "1#教学综合楼",
-      "type": "CR",
-      "region": "cultural_core",
-      "x": 0,
-      "z": 70,
-      "w": 95,
-      "d": 31,
-      "h": 21.9,
-      "floors": 5,
-      "color": "#e2ddd2",
-      "accent": "#c8923f",
-      "shape": "arc_mirror",
-      "floor_height": 4.2,
-      "label_offset": [
-        0,
-        -40
-      ]
-    },
-    {
-      "id": "B24",
-      "name": "25#学生宿舍",
-      "type": "DOR",
-      "region": "academic_east",
-      "x": 118,
-      "z": -25,
-      "w": 40,
-      "d": 26,
-      "h": 25,
-      "floors": 6,
-      "color": "#d9dedc",
-      "accent": "#6f9eae",
-      "shape": "rect",
-      "floor_height": 4.2
-    },
-    {
-      "id": "B25",
-      "name": "26#学生宿舍",
-      "type": "DOR",
-      "region": "academic_east",
-      "x": 182,
-      "z": -25,
-      "w": 40,
-      "d": 26,
-      "h": 25,
-      "floors": 6,
-      "color": "#d6dcdb",
-      "accent": "#6f9eae",
-      "shape": "rect",
-      "floor_height": 4.2
-    },
-    {
-      "id": "B26",
-      "name": "27#学生宿舍",
-      "type": "DOR",
-      "region": "academic_east",
-      "x": 127,
-      "z": -140,
-      "w": 40,
-      "d": 26,
-      "h": 25,
-      "floors": 6,
-      "color": "#d0d9d9",
-      "accent": "#7caab7",
-      "shape": "rect",
-      "floor_height": 4.2
-    },
-    {
-      "id": "B27",
-      "name": "28#学生宿舍",
-      "type": "DOR",
-      "region": "academic_east",
-      "x": 187,
-      "z": -140,
-      "w": 40,
-      "d": 26,
-      "h": 25,
-      "floors": 6,
-      "color": "#cfd9d8",
-      "accent": "#80b696",
-      "shape": "rect",
-      "floor_height": 4.2
+      "shape": "rect"
     }
   ],
   "landmarks": [
@@ -512,12 +444,5 @@
       427
     ],
     "derivation": "photo-relative layout scaled against published phase-1 land area; not a cadastral survey"
-  },
-  "building_program_source": "岳阳学院项目（一期）工程名录；命名修正依据：校园中心地上9层/高45m标志性建筑为1#图书馆，北侧半圆形单体为2#教学综合楼，其同心镜像单体为1#教学综合楼。",
-  "modeling_revision": {
-    "date": "2026-09-20",
-    "classrooms": "教学楼/实验楼统一 5 层，每层由 2 列 5 行(10 间) 改为 4 列 5 行(20 间)",
-    "room_numbering": "每层 101~120（101 + 列序*5 + 行序）",
-    "schedulable": "仅教学楼(CR)与实验楼(LB)可排课"
   }
 }

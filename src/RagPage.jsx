@@ -11,6 +11,7 @@ import {
   Send,
   ShieldCheck,
 } from "lucide-react";
+import { buildingBadge, roomFriendly } from "./labels";
 
 /**
  * 独立 RAG 问答页（免登录 /rag）
@@ -18,7 +19,12 @@ import {
  * - 中：问答（回答附 sources 溯源，点击跳到对应源数据）
  * - 右：班级视角选择 + 内置评测集一键回归 + 工具清单
  */
-const CLASSES = ["计科1班", "计科2班", "计科3班", "计科4班", "计科5班", "计科6班"];
+// 班级清单从生产数据动态拉取（/api/rag/classes，随 data/rag 重新生成自动同步）；
+// 这里只保留接口失败时的兜底。
+const FALLBACK_CLASSES = [
+  "计科2501", "计科2502", "计科2503", "计科2504", "计科2505", "计科2506",
+  "计科2601", "计科2602", "计科2603", "计科2604", "计科2605", "计科2606",
+];
 const DATA_TABS = [
   { key: "students", label: "学生与宿舍", icon: GraduationCap },
   { key: "schedule", label: "课表", icon: Layers },
@@ -28,11 +34,11 @@ const DATA_TABS = [
 ];
 
 const QUICK = [
-  "计科1班明天第一节课在哪？",
+  "计科2501明天第一节课在哪？",
   "从宿舍到明天上午所有教室怎么走？",
-  "计科2班今天下午有什么课？",
+  "会计2601今天下午有什么课？",
   "第3大节几点下课",
-  "计科3班的培养方案是什么",
+  "会计2601班的培养方案是什么",
 ];
 
 async function api(path, options) {
@@ -45,12 +51,13 @@ export default function RagPage() {
   const [messages, setMessages] = useState([
     {
       from: "ai",
-      text: "校园 RAG 问答系统已就绪（免登录演示）。数据：6 个班 360 名学生、60 间宿舍、96 条排课、夏季/冬季双作息。回答均附数据溯源，可在左侧核对源数据。",
+      text: "校园 RAG 问答系统已就绪（免登录演示）。数据：133 个班 7004 名学生（2025级+2026级）、1168 间宿舍、1849 条排课、311 名教师、144 门课程，夏季/冬季双作息。回答均附数据溯源，可在左侧核对源数据。",
       sources: [],
     },
   ]);
   const [input, setInput] = useState("");
-  const [viewClass, setViewClass] = useState(CLASSES[0]);
+  const [classList, setClassList] = useState(FALLBACK_CLASSES);
+  const [viewClass, setViewClass] = useState("计科2501");
   const [busy, setBusy] = useState(false);
 
   // 源数据面板
@@ -77,6 +84,21 @@ export default function RagPage() {
   useEffect(() => {
     loadTab(tab);
   }, [tab]);
+
+  useEffect(() => {
+    // 班级清单以生产数据为准：随 data/rag 重新生成自动同步，不再硬编码
+    api("/api/rag/classes")
+      .then((payload) => {
+        const list = payload?.all;
+        if (Array.isArray(list) && list.length) {
+          setClassList(list);
+          setViewClass((current) =>
+            list.includes(current) ? current : list[0],
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     api("/api/rag/tools").then((payload) => setTools(payload.tools || [])).catch(() => {});
@@ -144,12 +166,12 @@ export default function RagPage() {
           <div className="rag-mark"><Bot size={20} /></div>
           <div>
             <b>岳阳学院 · RAG 问答系统</b>
-            <small>免登录演示 / 360 名学生 · 6 班级 · 双季作息 · 溯源检索</small>
+            <small>免登录演示 / 7004 名学生 · 133 班级 · 双季作息 · 溯源检索</small>
           </div>
         </div>
         <div className="rag-top-actions">
-          <span className="rag-pill">2026-2027-1 · 大二上学期</span>
-          <span className="rag-pill">2025 级 · 2025 秋入学</span>
+          <span className="rag-pill">2026-2027 学年第一学期 · 19 周</span>
+          <span className="rag-pill">2025级（大二）· 2026级（大一）</span>
           <button className="rag-pill rag-pill-btn" onClick={() => (window.location.href = "/")}>
             返回 3D 首页 →
           </button>
@@ -186,7 +208,7 @@ export default function RagPage() {
                   <b>{s.name}</b>
                   <span>{s.student_id}</span>
                   <span>{s.class_name}</span>
-                  <span className="rag-dim">{s.dorm_room_code} · {s.bed}号床</span>
+                  <span className="rag-dim">{roomFriendly(s.dorm_room_code)} · {s.bed}号床</span>
                 </div>
               ))}
             {tab === "schedule" &&
@@ -196,7 +218,7 @@ export default function RagPage() {
                   <b>{r.class_name}</b>
                   <span>周{["一", "二", "三", "四", "五"][r.weekday - 1]} 第{r.period}大节</span>
                   <span>{r.course} · {r.teacher}</span>
-                  <span className="rag-dim">{r.location}</span>
+                  <span className="rag-dim">{roomFriendly(r.location)}</span>
                 </div>
               ))}
             {tab === "timetable" && dataSource.timetable && (
@@ -217,14 +239,47 @@ export default function RagPage() {
             )}
             {tab === "training_plan" && dataSource.training_plan && (
               <div className="rag-plan">
-                <p className="rag-note">{dataSource.training_plan.major} · 每班 {dataSource.training_plan.total_credits_per_class} 学分</p>
-                {Object.entries(dataSource.training_plan.elective_plan).map(([cls, electives]) => (
-                  <div className="rag-row" key={cls}>
-                    <b>{cls}</b>
-                    <span>选修：{electives.join("、")}</span>
-                    <span className="rag-dim">宿舍 {dataSource.training_plan.dorm_allocation[cls].building}（{dataSource.training_plan.dorm_allocation[cls].rooms.length} 间）</span>
-                  </div>
-                ))}
+                {(() => {
+                  // 2026-09-20 起培养方案结构：{ semester, summary, classes, dorm_allocation }
+                  // classes[class] = { grade_label, major, college, counselor, student_count, courses[] }
+                  const plan = dataSource.training_plan;
+                  const summary = plan.summary || {};
+                  const entries = Object.entries(plan.classes || {});
+                  const keyword = filter.trim();
+                  const rows = (keyword
+                    ? entries.filter(([cls, info]) =>
+                        `${cls} ${info.major} ${info.college} ${info.counselor}`.includes(keyword),
+                      )
+                    : entries
+                  ).slice(0, 120);
+                  return (
+                    <>
+                      <p className="rag-note">
+                        {plan.semester?.name || "本学期"} · {summary.classes || entries.length} 个班 /{" "}
+                        {summary.students || "—"} 名学生 / {summary.teachers || "—"} 名教师 /{" "}
+                        {summary.courses || "—"} 门课程（可搜索班级/专业/学院/辅导员）
+                      </p>
+                      {rows.map(([cls, info]) => {
+                        const dorm = (plan.dorm_allocation || {})[cls];
+                        const male = dorm?.male_rooms?.length || 0;
+                        const female = dorm?.female_rooms?.length || 0;
+                        return (
+                          <div className="rag-row" key={cls}>
+                            <b>{cls}</b>
+                            <span>
+                              {info.major} · {info.grade_label} · {info.student_count} 人
+                            </span>
+                            <span className="rag-dim">
+                              {info.college} · 辅导员 {info.counselor} · {info.courses?.length || 0} 门课
+                              {dorm ? ` · 宿舍 男${dorm.building_male?.map(buildingBadge).join("/")} ${male}间 女${dorm.building_female?.map(buildingBadge).join("/")} ${female}间` : ""}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {rows.length === 0 && <p className="rag-note">无匹配班级</p>}
+                    </>
+                  );
+                })()}
               </div>
             )}
             {tab === "validation" && dataSource.validation && (
@@ -250,13 +305,28 @@ export default function RagPage() {
           </div>
           <div className="rag-view">
             视角班级：
-            <div className="rag-classes">
-              {CLASSES.map((cls) => (
-                <button key={cls} className={viewClass === cls ? "rag-tab active" : "rag-tab"} onClick={() => setViewClass(cls)}>
+            <select
+              value={viewClass}
+              onChange={(event) => setViewClass(event.target.value)}
+              aria-label="视角班级"
+              style={{
+                background: "#0d2233",
+                color: "#d7e6e2",
+                border: "1px solid rgba(122,168,180,.35)",
+                borderRadius: 6,
+                padding: "4px 8px",
+                fontSize: 13,
+              }}
+            >
+              {classList.map((cls) => (
+                <option key={cls} value={cls}>
                   {cls}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
+            <small style={{ marginLeft: 8, opacity: 0.65 }}>
+              共 {classList.length} 个班 · 与生产数据同步
+            </small>
           </div>
           <div className="rag-messages" ref={listRef}>
             {messages.map((message, i) => (
@@ -298,7 +368,7 @@ export default function RagPage() {
               value={input}
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={(event) => event.key === "Enter" && ask()}
-              placeholder="例如：计科4班周五下午有什么课？王浩住在哪？"
+              placeholder="例如：计科2602周五下午有什么课？罗慕波住在哪？"
             />
             <button onClick={() => ask()} disabled={busy}>
               <Send size={15} />
@@ -312,7 +382,7 @@ export default function RagPage() {
             <FlaskConical size={15} /> 检索评测
             <small>EVALS</small>
           </div>
-          <button className="rag-eval-btn" onClick={runEval}>运行内置评测集（{5} 条）</button>
+          <button className="rag-eval-btn" onClick={runEval}>运行内置评测集（12 条）</button>
           {evalResult === "running" && <p className="rag-note">评测运行中…</p>}
           {evalResult && evalResult.results && (
             <div className="rag-eval-body">

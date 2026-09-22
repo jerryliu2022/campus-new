@@ -24,6 +24,17 @@ RAG_DATA = DATA / "rag"
 TEST_DB = DATA / "learn_test.db"
 SOURCE_DB = DATA / "campus.db"
 
+# room_code → 语义名（含真实楼号，如 "B12_CR_F2_113" → "13#学生宿舍·2层113室"）。
+# 界面展示一律用真实楼号；内部 B 码只作为主键存在。
+def _load_room_names() -> dict:
+    try:
+        records = json.loads((DATA / "room_anchors.json").read_text(encoding="utf-8"))
+        return {r["room_code"]: r["semantic_name"] for r in records.get("rooms", [])}
+    except Exception:
+        return {}
+
+ROOM_NAMES = _load_room_names()
+
 router = APIRouter(prefix="/api/learn")
 
 # 源码摘录白名单（只读）
@@ -36,7 +47,7 @@ SOURCE_WHITELIST = {
 
 SCHEMA_SQL = [
     "CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password_hash TEXT NOT NULL, display_name TEXT NOT NULL, role TEXT NOT NULL, class_name TEXT)",
-    "CREATE TABLE IF NOT EXISTS schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, class_name TEXT, course TEXT, teacher TEXT, weekday INTEGER, period INTEGER, location TEXT)",
+    "CREATE TABLE IF NOT EXISTS schedule (id INTEGER PRIMARY KEY AUTOINCREMENT, class_name TEXT, course TEXT, teacher TEXT, weekday INTEGER, period INTEGER, location TEXT, weeks TEXT, grade TEXT, major TEXT, course_type TEXT)",
     "CREATE TABLE IF NOT EXISTS dorm_members (name TEXT, class_name TEXT, grade TEXT, building_code TEXT, floor INTEGER, room_number INTEGER, phone TEXT, home_phone TEXT)",
     "CREATE TABLE IF NOT EXISTS room_anchor_overrides (room_code TEXT PRIMARY KEY, semantic_name TEXT NOT NULL, building_code TEXT NOT NULL, anchor_world TEXT NOT NULL, updated_by TEXT NOT NULL, updated_at INTEGER NOT NULL)",
     "CREATE TABLE IF NOT EXISTS notices (id INTEGER PRIMARY KEY AUTOINCREMENT, content TEXT NOT NULL, created_by TEXT NOT NULL, created_at INTEGER NOT NULL)",
@@ -236,7 +247,7 @@ def run_backend_code(body: CodeBody):
 
 
 @router.get("/demo/chain")
-def demo_chain(class_name: str = "计科1班"):
+def demo_chain(class_name: str = "计科2501"):
     """全链路演示：前端 → 后端 → SQLite → JSON → 前端渲染"""
     sql = ("SELECT id, class_name, course, teacher, weekday, period, location "
            "FROM rag_schedule WHERE class_name = ? ORDER BY weekday, period LIMIT 5")
@@ -254,7 +265,7 @@ def demo_chain(class_name: str = "计科1班"):
         "rows": rows,
         "row_count": total,
         "elapsed_ms": elapsed,
-        "display": [f"{labels[r['weekday'] - 1]} 第{r['period']}大节 {r['course']} · {r['teacher']} @ {r['location']}" for r in rows],
+        "display": [f"{labels[r['weekday'] - 1]} 第{r['period']}大节 {r['course']} · {r['teacher']} @ {ROOM_NAMES.get(r['location'], r['location'])}" for r in rows],
         "source_refs": ["backend/main.py · db_rows()/init_db()", "backend/rag.py · tool_schedule()", "src/RagPage.jsx · api()/ask()"],
     }
 

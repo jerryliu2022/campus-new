@@ -2,12 +2,14 @@ import React, {
   Component,
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
   Html,
   Line,
@@ -52,6 +54,7 @@ import roadGraph from "../data/road_graph.json";
 import campusLayout from "../data/campus_layout.json";
 import roomAnchors from "../data/room_anchors.json";
 import LoginScreen from "./LoginScreen";
+import { campusBadgeOf, buildingBadge, labelOffsetOf } from "./labels";
 
 const WalkPhysics = lazy(() => import("./WalkPhysics"));
 
@@ -289,12 +292,25 @@ const COLORS = {
   afternoon: "#f3a64f",
   next: "#c58cff",
   dorm: "#75d19d",
+  origin: "#ff8a5c",
   route: "#f5cf64",
   selected: "#ff6464",
 };
-const LIFT_OFFSET = 30;
+// 课表多段路径的逐段颜色：第1段黄、第2段粉红、第3段青、第4段黄绿。
+// 刻意避开房间高亮用的蓝/橙/紫/绿/红，段与段在教学楼最近门处衔接时一眼能分开。
+const ROUTE_LEG_COLORS = ["#f5cf64", "#ff5ec4", "#3fd8d0", "#a4ff5e"];
+// 弹起的垂直位移 = 楼栋自身高度（h），即「楼往上升一栋楼的高度」。
+// 原来是一个固定 30m 常量：矮楼（10m）会飞得过高、高楼（45m）又和自身分不开。
+const BUILDING_LIFT = Object.fromEntries(
+  (campusLayout.buildings || []).map((building) => [
+    building.id,
+    building.h || 20,
+  ]),
+);
+const liftOf = (code) => BUILDING_LIFT[code] ?? 20;
 // 多视角沙盘校准后的布局是前端与 Blender 共用的唯一建筑坐标源。
 const PHOTO_BUILDINGS = campusLayout.buildings;
+// 用户可见「建筑标号」统一用真实楼号 —— campusBadgeOf / buildingBadge / roomFriendly 见 src/labels.js。
 const ROOM_RECORDS = roomAnchors.rooms || [];
 const ACTIVE_ROAD_NODES =
   roadGraph.nodes?.map((node) => [
@@ -305,6 +321,29 @@ const ACTIVE_ROAD_NODES =
   ]) || ROAD_NODES;
 const ACTIVE_ROAD_EDGES = roadGraph.edges || ROAD_EDGES;
 
+// 把一串路网节点 id 展开成折线点：查相邻节点对的边、复用道路几何（含方向翻转）。
+// 单条完整路径和多段路径的每一段都用它展开，保证视觉上完全一致。
+function pathPointsFromIds(ids) {
+  const points = [];
+  for (let index = 0; index < ids.length - 1; index += 1) {
+    const from = ids[index];
+    const to = ids[index + 1];
+    const edge = ACTIVE_ROAD_EDGES.find(
+      (item) =>
+        (item.from === from && item.to === to) ||
+        (item.from === to && item.to === from),
+    );
+    if (!edge) continue;
+    const geometry =
+      edge.from === from ? edge.geometry : [...edge.geometry].reverse();
+    geometry.forEach((point, pointIndex) => {
+      if (index > 0 && pointIndex === 0) return;
+      points.push([point[0], 0.48, point[2]]);
+    });
+  }
+  return points;
+}
+
 function mat(color, metalness = 0.05, roughness = 0.65) {
   return (
     <meshStandardMaterial
@@ -313,6 +352,19 @@ function mat(color, metalness = 0.05, roughness = 0.65) {
       roughness={roughness}
     />
   );
+}
+
+// 材质动画里每帧都要拿到目标色的 Color 实例。
+// 原来每帧对每个材质 new THREE.Color(...)（约 1900 次/帧），
+// 直接在帧循环里制造大量短命对象，GC 抖动明显；这里按色值复用同一实例。
+const COLOR_CACHE = new Map();
+function colorOf(value) {
+  let cached = COLOR_CACHE.get(value);
+  if (!cached) {
+    cached = new THREE.Color(value);
+    COLOR_CACHE.set(value, cached);
+  }
+  return cached;
 }
 
 function Tree({ x, z, scale = 1, autumn = false }) {
@@ -439,22 +491,26 @@ function Building({ building, highlighted, selected, onSelect, counselor }) {
         </mesh>
       )}
       {selected && (
-        <Html position={[0, building.h + 2.5, 0]} center distanceFactor={18}>
+        <Html
+          position={[...labelOffsetOf(building), building.h + 2.5]}
+          center
+          distanceFactor={18}
+        >
           <div className="scene-label">
-            <span>{building.id}</span>
+            <span>{campusBadgeOf(building)}</span>
             {building.name}
           </div>
         </Html>
       )}
       <Text
-        position={[0, building.h + 1.3, 0]}
+        position={[...labelOffsetOf(building), building.h + 1.3]}
         rotation={[-Math.PI / 2, 0, 0]}
         fontSize={1.25}
         color={highlighted ? highlighted.color : "#d8e9e7"}
         anchorX="center"
         anchorY="middle"
       >
-        {building.id.replace("B", "")}
+        {campusBadgeOf(building)}
       </Text>
       {counselor && building.type === "DOR" && (
         <mesh position={[0, building.h + 0.8, 0]}>
@@ -529,6 +585,9 @@ function CanvasFallback({ error, retry }) {
   );
 }
 
+const ROOM_FLOOR_H = 4.2; // 层高（米），与 campus_program.py 一致
+const ROOM_FLOOR_GAP = 5.0; // 弹起后逐层分离的间隙，便于查看每层房间
+
 function BuildingInterior({
   building,
   highlights,
@@ -539,37 +598,61 @@ function BuildingInterior({
     () => ROOM_RECORDS.filter((room) => room.building_code === building.id),
     [building.id],
   );
-  const hasRoomHighlights = rooms.some((room) => highlights[room.room_code]);
+  const floors = useMemo(
+    () => [...new Set(rooms.map((room) => room.floor))].sort((a, b) => a - b),
+    [rooms],
+  );
   if (!rooms.length) return null;
+
+  const floorY = (f) => (f - 1) * (ROOM_FLOOR_H + ROOM_FLOOR_GAP);
+  // 房间盒用 room_anchors 的真实世界坐标减去楼栋中心，得到楼栋局部坐标；
+  // 弧形楼（1#/2#教学综合楼）的锚点本就落在环带上，无需额外换算。
+  const localOf = (room) => {
+    const [x, , z] = room.anchor_world;
+    const bmin = room.bbox_min || [x - 2, 0, z - 1.5];
+    const bmax = room.bbox_max || [x + 2, 0, z + 1.5];
+    return {
+      x: x - building.x,
+      z: z - building.z,
+      w: Math.max(1.1, Math.abs(bmax[0] - bmin[0])),
+      d: Math.max(1.1, Math.abs(bmax[2] - bmin[2])),
+      rotY: room.orientation?.[1] || 0,
+    };
+  };
+
   return (
-    <group position={[building.x, LIFT_OFFSET + building.h, building.z]}>
+    // 弹起高度 = 楼栋自身高度：楼层剖面整体抬到「原楼顶再高一栋楼」的位置。
+    <group position={[building.x, building.h, building.z]}>
+      {floors.map((floor) => (
+        <group key={`floor-${floor}`} position={[0, floorY(floor), 0]}>
+          {/* 层间不再铺楼层板：板会把下面的教室挡住。只留楼层号牌标示分层。 */}
+          <Html
+            position={[-building.w / 2 - 6, ROOM_FLOOR_H / 2, 0]}
+            center
+            style={{ pointerEvents: "none" }}
+          >
+            <div className="floor-tag">{floor}F</div>
+          </Html>
+        </group>
+      ))}
       {rooms.map((room) => {
-        const [x, y, z] = room.anchor_world;
-        const bmin = room.bbox_min || [x - 2, y - 1.2, z - 1.5];
-        const bmax = room.bbox_max || [x + 2, y + 1.2, z + 1.5];
-        const width = Math.max(1.2, Math.abs(bmax[0] - bmin[0]));
-        const depth = Math.max(1.2, Math.abs(bmax[2] - bmin[2]));
-        const height = Math.max(1.4, Math.abs(bmax[1] - bmin[1]));
-        const localRowZ = z - building.z;
-        const rowSign = localRowZ >= 0 ? 1 : -1;
-        const maxDepth = Math.max(4, (building.d - 1.6) / 2);
-        const drawDepth = Math.min(depth, maxDepth);
-        const rowCenter =
-          rowSign * Math.max(0.5, building.d / 2 - drawDepth / 2 - 0.45);
-        const roomNumber =
-          Number(String(room.room_code).split("_").pop()) || 101;
-        const col = Math.max(0, roomNumber - 101) % 5;
-        const halfSpan = Math.max(2, building.w / 2 - width / 2 - 0.45);
-        const drawX = halfSpan * ((col - 2) / 2);
+        const { x: lx, z: lz, w, d, rotY } = localOf(room);
         const active = selectedRoom?.room_code === room.room_code;
         const highlight = highlights[room.room_code];
         const color = active
           ? COLORS.selected
           : highlight?.color || building.accent;
+        const number = String(room.room_code).split("_").pop();
+        const label = `F${room.floor}·${number}室`;
         return (
           <group
             key={room.room_code}
-            position={[drawX, y + (room.floor - 1) * 5.5, rowCenter]}
+            position={[
+              lx,
+              floorY(room.floor) + ROOM_FLOOR_H / 2,
+              lz,
+            ]}
+            rotation={[0, rotY, 0]}
           >
             <mesh
               castShadow
@@ -577,15 +660,28 @@ function BuildingInterior({
               userData={{ roomCode: room.room_code }}
               onClick={(event) => {
                 event.stopPropagation();
+                // 与楼栋外壳同一套判定：拖动视角松手不算点击，否则拨一下鼠标
+                // 就会把松手处那间教室「选中」。
+                if ((event.delta ?? 0) > 4) return;
                 onRoomSelect(room);
               }}
             >
-              <boxGeometry args={[width, height, drawDepth]} />
-              {mat(color, active ? 0.22 : 0.05, active ? 0.28 : 0.6)}
+              <boxGeometry args={[w, ROOM_FLOOR_H - 1.4, d]} />
+              {/* 房间单元统一半透明：隔板去掉后，视线能穿过前排房间，
+                  直接看到（高亮/点中的）目标教室；越重点的房间越实。 */}
+              <meshStandardMaterial
+                color={color}
+                metalness={active ? 0.22 : 0.05}
+                roughness={active ? 0.28 : 0.6}
+                transparent
+                opacity={active ? 1 : highlight ? 1 : 0.85}
+              />
             </mesh>
-            {(!hasRoomHighlights || highlight || active) && (
+            {/* 弹起后默认不挂牌：一栋楼 100 个气泡会糊成一片。
+                只给「被高亮的教室」和「鼠标点中的教室」挂标签，其余靠点选查看。 */}
+            {(highlight || active) && (
               <Html
-                position={[0, height / 2 + 0.45, 0]}
+                position={[0, (ROOM_FLOOR_H - 1.4) / 2 + 0.45, 0]}
                 center
                 style={{ pointerEvents: "auto" }}
               >
@@ -598,7 +694,7 @@ function BuildingInterior({
                     onRoomSelect(room);
                   }}
                 >
-                  {room.floor}F·{String(room.room_code).split("_").pop()}
+                  {label}
                 </div>
               </Html>
             )}
@@ -620,21 +716,129 @@ function CampusModel({
   showRooms,
 }) {
   const gltf = useGLTF("/assets/yueyang_campus.glb");
-  const scene = useMemo(() => {
+  const invalidate = useThree((state) => state.invalidate);
+  // 一次性预处理：克隆场景、建索引、按「楼栋 + 原材质」共享材质实例。
+  // 返回 buildingMeshes 后，帧循环只遍历 27 个建筑外壳（每栋合并成 1 个多材质 Mesh），
+  // 不再每帧 scene.traverse() 整棵场景树。
+  const { scene, buildingMeshes, roomMeshes } = useMemo(() => {
     const cloned = gltf.scene.clone(true);
+    // 北侧生态湖原 bbox x[142,207] z[125,171]，压住了北环路(z=160)与宿舍区中街
+    // (x=154.5)。规划定稿（用户确认）：湖缩小到 0.68 并平移进 Ve2/Ve3/Hz12/Hz18
+    // 围合的街区内 —— 新湖面 x[161.9,206.1] z[119.9,151.1]，距四条路缘均 ≥4.8m；
+    // 山林地形（z≥165）保持在路网之外不动。
+    // 缩放绕原点：p' = 0.68·p + t，t = 目标中心 - 0.68·原中心 = (65.34, 34.86)。
+    // 必须在世界矩阵烘焙（updateMatrixWorld）前设置，否则会被静态合批烘焙掉。
+    cloned.traverse((object) => {
+      if (object.isMesh && object.name === "北侧生态湖") {
+        object.scale.set(0.68, 1, 0.68);
+        object.position.set(65.34, 0, 34.86);
+      }
+      if (object.isMesh && object.name && object.name.startsWith("主轴景观岛")) {
+        object.position.y -= 0.09;
+      }
+    });
+    // 实例化合并需要用到各节点的最终局部矩阵，先把整棵树的矩阵算好。
+    cloned.updateMatrixWorld(true);
+    // 规划变更（B07/B17 拆除 + 路网重构）只改了数据层，GLB 是静态资产：
+    // 这里按名字剔除两栋已拆建筑的网格和整批旧路面网格（ROAD_*），
+    // 新路面由 <GroundRoads> 按 road_graph.json 程序化重建，保证与寻路一致。
+    const removed = [];
+    const buildings = [];
+    const rooms = [];
+    const materialPool = new Map();
+    // 「同一几何体 + 同一材质 + 同一父节点」反复出现的装饰物（树木 606 个、
+    // 运动场标线 14 个）先收集，traverse 结束后合并成 InstancedMesh。
+    // 这是每帧 draw call 的最大头：606 个树 mesh → 4 个实例化批次。
+    const buckets = new Map();
+    // 几何体各不相同（长度/形状都不一样）因此无法实例化的静态摆件
+    // （道路 450 个、广场、水池、围栏……）也收集起来，之后按材质做几何合批。
+    const statics = [];
+
     cloned.traverse((object) => {
       if (!object.isMesh) return;
-      const buildingMatch = object.name?.match(/^(B\d+)_/);
-      if (buildingMatch) object.userData.building_code = buildingMatch[1];
-      if (/^B\d+_[A-Z]+_F\d+_\d+$/.test(object.name || ""))
-        object.userData.room_code = object.name;
+      const name = object.name || "";
+      const buildingMatch = name.match(/^(B\d+)_/);
+      const code = buildingMatch ? buildingMatch[1] : null;
+
+      // 已拆除建筑（B07/B17/B10/B23）与整批旧路面网格直接摘除。旧路面（ROAD_*、
+      // ROAD_MARK_*、BOUNDARY_ROAD_*、NODE_*）和新 <GroundRoads> 高度重叠，
+      // 留在场景里会 z-fight 出闪烁；GLB 是静态资产，运行时剔除即可。
+      // 「实验综合楼前广场」是 B23 的配套铺装，楼拆了广场一并摘除。
+      if (
+        code === "B07" ||
+        code === "B17" ||
+        code === "B10" ||
+        code === "B23" ||
+        name === "实验综合楼前广场" ||
+        /^(ROAD_|BOUNDARY_ROAD_|NODE_)/.test(name)
+      ) {
+        removed.push(object);
+        return;
+      }
+      // 规划调整（2026-09-21 第四轮，用户确认）：B08 会堂移到 (-156,66)
+      // 与 11#食堂同轴；B16 宿舍移到 (-156,135) 与 7#实训B 同线。
+      // GLB 外壳几何是世界坐标烘焙的（节点 position 为 0），直接在 mesh 上加平移量即可。
+      if (code === "B08") {
+        object.position.x -= 2; // -154 -> -156
+        object.position.z -= 32; // 98 -> 66
+      } else if (code === "B16") {
+        object.position.x -= 48; // -108 -> -156
+        object.position.z += 1; // 134 -> 135
+      }
+      // 会堂新footprint内的一棵行道树（TREE_298，-132,76），移走楼后正好卡在楼体里
+      if (name.startsWith("TREE_298_")) {
+        removed.push(object);
+        return;
+      }
+      // 1#/2#教学综合楼（B06/B22 同心圆环，圆心 (0,70)、外半径 47.5、环带宽 31）：
+      // 23 棵树（TREE_174~177、TREE_277~295）落在环带楼体内，平时被壳体罩住，
+      // 弹起内剖后露在楼底下穿帮 —— 按环带半径剔除（保留内院 r<16.5 的树）。
+      if (name.startsWith("TREE_")) {
+        const ringR = Math.hypot(
+          object.position.x,
+          object.position.z - 70,
+        );
+        if (ringR > 16.5 && ringR < 47.5) {
+          removed.push(object);
+          return;
+        }
+      }
+
+      // 兼容旧资产：早期 glb 会把 2720 个房间网格也导出来（纯冗余——运行时房间由
+      // BuildingInterior 按 room_anchors 重建）。现在的生成器已不再导出它们，
+      // 这里保留分支只为兼容旧模型，新模型走不到。
+      if (/^B\d+_[A-Z]+_F\d+_\d+$/.test(name)) {
+        object.userData.room_code = name;
+        rooms.push(object);
+        return;
+      }
+      if (code) object.userData.building_code = code;
+
       const hadMaterialArray = Array.isArray(object.material);
       const sourceMaterials = hadMaterialArray
         ? object.material
         : [object.material];
       const materials = sourceMaterials
-        .filter(Boolean)
-        .map((item) => (typeof item.clone === "function" ? item.clone() : null))
+        .map((item, index) => {
+          if (!item || typeof item.clone !== "function") return null;
+          // 同一栋楼共用同一份材质实例：
+          // 材质数从「每个 mesh 各一份」（约 950 份）降到「每栋楼每种材质一份」（约 200 份），
+          // 直接减少 uniform 刷新、program 切换与材质动画开销。
+          const key = `${code || "static"}|${index}|${item.uuid}`;
+          let shared = materialPool.get(key);
+          if (!shared) {
+            shared = item.clone();
+            shared.userData.baseColor =
+              shared.color?.clone?.() || new THREE.Color("#b7c0bb");
+            shared.userData.baseEmissive =
+              shared.emissive?.clone?.() || new THREE.Color("#000000");
+            shared.userData.baseOpacity = Number.isFinite(shared.opacity)
+              ? shared.opacity
+              : 1;
+            materialPool.set(key, shared);
+          }
+          return shared;
+        })
         .filter(Boolean);
       if (!materials.length)
         materials.push(
@@ -642,69 +846,196 @@ function CampusModel({
         );
       object.material = hadMaterialArray ? materials : materials[0];
       object.userData.baseY = object.position.y;
-      materials.forEach((item) => {
-        item.userData.baseColor =
-          item.color?.clone?.() || new THREE.Color("#b7c0bb");
-        item.userData.baseEmissive =
-          item.emissive?.clone?.() || new THREE.Color("#000000");
-        item.userData.baseOpacity = Number.isFinite(item.opacity)
-          ? item.opacity
-          : 1;
-      });
-      object.castShadow = !object.userData.room_code;
+      object.castShadow = true;
       object.receiveShadow = true;
+      if (code) {
+        buildings.push(object);
+      } else {
+        const geometry = object.geometry;
+        const material = hadMaterialArray
+          ? object.material[0]
+          : object.material;
+        if (geometry && material) {
+          statics.push(object);
+          const key = `${geometry.uuid}|${material.uuid}|${object.parent?.uuid || "root"}`;
+          let bucket = buckets.get(key);
+          if (!bucket) {
+            bucket = {
+              geometry,
+              material,
+              parent: object.parent,
+              list: [],
+            };
+            buckets.set(key, bucket);
+          }
+          bucket.list.push(object);
+        }
+      }
     });
-    return cloned;
+
+    // 遍历结束后统一摘除已拆除建筑与旧路面网格
+    removed.forEach((object) => object.removeFromParent());
+
+    // 合并实例化批次：阈值以下不值得（收益抵不过维护成本），保持原样。
+    for (const { geometry, material, parent, list } of buckets.values()) {
+      if (!parent || list.length < 6) continue;
+      const batch = new THREE.InstancedMesh(geometry, material, list.length);
+      list.forEach((item, index) => {
+        batch.setMatrixAt(index, item.matrix);
+        item.removeFromParent();
+      });
+      batch.instanceMatrix.needsUpdate = true;
+      batch.castShadow = true;
+      batch.receiveShadow = true;
+      batch.name = `INSTANCED_x${list.length}`;
+      // 树和标线本来就不参与点击（没有 building_code），顺手关掉拾取，
+      // 指针移动时 Raycaster 也不用再逐个遍历这几百个对象。
+      batch.raycast = () => {};
+      parent.add(batch);
+    }
+
+    // 几何合批：剩余静态摆件每个都是独立几何体（道路+标线 450 个是交互期
+    // 每帧 draw call 的第二大头），但它们不参与拾取、不参与任何动画，
+    // 把世界矩阵烘焙进几何体后按材质合并成极少数 Mesh。
+    // 对象名/材质动画/阴影都无损；点击道路本就无行为，关掉拾取反而更快。
+    const mergeGroups = new Map();
+    for (const object of statics) {
+      if (!object.parent) continue; // 已被实例化合并移除
+      const material = Array.isArray(object.material)
+        ? object.material[0]
+        : object.material;
+      if (!material || material.map) continue; // 带贴图的合并会丢 UV 语义，跳过
+      const key = `${material.uuid}|${object.castShadow ? 1 : 0}|${
+        object.receiveShadow ? 1 : 0
+      }`;
+      let group = mergeGroups.get(key);
+      if (!group) {
+        group = {
+          material,
+          castShadow: object.castShadow,
+          receiveShadow: object.receiveShadow,
+          geoms: [],
+          objects: [],
+        };
+        mergeGroups.set(key, group);
+      }
+      const baked = object.geometry.clone().applyMatrix4(object.matrixWorld);
+      // mergeGeometries 要求所有几何体属性集一致：统一只保留 position+normal。
+      // 本场景静态材质都是纯色（tex=1 全场景），丢 UV 无影响。
+      for (const name of Object.keys(baked.attributes)) {
+        if (name !== "position" && name !== "normal") {
+          baked.deleteAttribute(name);
+        }
+      }
+      if (!baked.attributes.normal) baked.computeVertexNormals();
+      group.geoms.push(baked);
+      group.objects.push(object);
+    }
+    for (const group of mergeGroups.values()) {
+      if (group.geoms.length < 4) continue; // 三两个的不值得折腾
+      const merged = mergeGeometries(group.geoms, false);
+      if (!merged) continue; // 索引/属性不一致时 three 返回 null，保持原样
+      const batch = new THREE.Mesh(merged, group.material);
+      batch.castShadow = group.castShadow;
+      batch.receiveShadow = group.receiveShadow;
+      batch.name = `MERGED_x${group.geoms.length}`;
+      batch.raycast = () => {};
+      cloned.add(batch);
+      for (const object of group.objects) object.removeFromParent();
+    }
+
+    return { scene: cloned, buildingMeshes: buildings, roomMeshes: rooms };
   }, [gltf.scene]);
 
+  // 房间模板网格彻底移出场景树：不再参与矩阵更新、包围盒计算与光栅化。
+  useEffect(() => {
+    roomMeshes.forEach((mesh) => mesh.removeFromParent());
+  }, [roomMeshes]);
+
+  // 弹起内剖时，该栋楼的外壳（外墙 + 窗户 + 屋顶 + 雨棚……已合并成同一个 Mesh）
+  // 整体隐藏，露出内部房间；落回时整体恢复。
+  // 用 ref 记住上一次的弹起目标：只依赖下面那个早退条件的话，「落回」那一帧
+  // 会被直接 return 掉，外壳就再也恢复不了了。
+  const liftedRef = useRef(null);
+
   useFrame((_, delta) => {
-    scene.traverse((object) => {
-      if (!object.isMesh) return;
+    const liftChanged = liftedRef.current !== liftedBuilding;
+    let animating = false;
+    // 常态（无高亮、无选中、未弹起、上一帧也没有待恢复的楼）直接早退。
+    // 原实现无条件跑完整轮遍历，首页每次渲染都要过 9900+ 节点、重算 ~950 份材质，
+    // 这是打开 3D 页 CPU 占用高、掉帧的主因。
+    if (
+      !liftChanged &&
+      !selected &&
+      !liftedBuilding &&
+      !Object.keys(highlights).length
+    )
+      return;
+
+    for (const object of buildingMeshes) {
       const code = object.userData.building_code;
-      const roomCode = object.userData.room_code;
-      if (roomCode) object.visible = false;
-      if (!code) return;
+      if (!code) continue;
       const isSelected = selected?.id === code;
       const isLifted = liftedBuilding === code;
       const highlight = highlights[code];
+
+      // 外墙与窗户现在是同一个 Mesh —— 一个 visible 就让它们一起隐、一起现。
+      // （原来是整栋调成 opacity 0.18 半透明，既要透明的 program 重编译、
+      //   又仍参与光栅化，现在直接移出渲染。）
+      const shellHidden = showRooms && (isLifted || code === liftedRef.current);
+      const nextVisible = !shellHidden;
+      if (object.visible !== nextVisible) object.visible = nextVisible;
+
       const targetY =
         object.userData.baseY +
-        (isLifted ? LIFT_OFFSET : isSelected ? 5.5 : highlight ? 1.5 : 0);
-      object.position.y = THREE.MathUtils.damp(
-        object.position.y,
-        targetY,
-        5.5,
-        delta,
-      );
+        (isLifted
+          ? liftOf(code)
+          : isSelected
+            ? 5.5
+            : highlight
+              ? 1.5
+              : 0);
+      if (
+        Math.abs(object.position.y - targetY) > 0.0005 ||
+        isSelected ||
+        isLifted ||
+        highlight
+      ) {
+        object.position.y = THREE.MathUtils.damp(
+          object.position.y,
+          targetY,
+          5.5,
+          delta,
+        );
+      }
+      // demand 模式：升/降与变色都是自驱动画，没收敛就要把下一帧续上。
+      if (Math.abs(object.position.y - targetY) > 0.0015) animating = true;
+
       const materials = Array.isArray(object.material)
         ? object.material
         : [object.material];
-      materials.forEach((item) => {
-        if (!item.color) return;
+      for (const item of materials) {
+        if (!item || !item.color) continue;
         const targetColor = isLifted ? null : highlight?.color;
         const baseColor = item.userData.baseColor || item.color;
-        item.color.lerp(
-          targetColor ? new THREE.Color(targetColor) : baseColor,
-          Math.min(1, delta * 7),
-        );
+        const colorTarget = targetColor ? colorOf(targetColor) : baseColor;
+        if (!item.color.equals(colorTarget)) animating = true;
+        item.color.lerp(colorTarget, Math.min(1, delta * 7));
         if (item.emissive) {
           const baseEmissive = item.userData.baseEmissive || item.emissive;
-          item.emissive.lerp(
-            isLifted
-              ? baseEmissive
-              : targetColor
-                ? new THREE.Color(targetColor)
-                : baseEmissive,
-            Math.min(1, delta * 7),
-          );
+          const emissiveTarget = isLifted
+            ? baseEmissive
+            : targetColor
+              ? colorOf(targetColor)
+              : baseEmissive;
+          if (!item.emissive.equals(emissiveTarget)) animating = true;
+          item.emissive.lerp(emissiveTarget, Math.min(1, delta * 7));
           item.emissiveIntensity = isLifted ? 0 : targetColor ? 0.22 : 0;
         }
-        const transparentShell = isLifted && showRooms && !roomCode;
-        item.transparent = transparentShell;
-        item.opacity = transparentShell ? 0.18 : item.userData.baseOpacity;
-        item.depthWrite = !transparentShell;
-      });
-    });
+      }
+    }
+    liftedRef.current = liftedBuilding;
+    if (animating) invalidate();
   });
 
   return (
@@ -713,6 +1044,11 @@ function CampusModel({
       onClick={(event) => {
         if (!interactive) return;
         event.stopPropagation();
+        // 转动视角（左键拖拽）时，Raycaster 会用「鼠标松开那一刻」的射线重新求交，
+        // 于是松手位置压在哪栋楼上，就会被当成点中了哪栋楼 —— 这是「拨动鼠标误触
+        // 其他建筑物」的根源。event.delta 是按下点到松手点的像素距离，超过阈值
+        // 一律判定为拖拽视角，不当作点击。
+        if ((event.delta ?? 0) > 4) return;
         let object = event.object;
         let code = null;
         while (object && !code) {
@@ -750,23 +1086,24 @@ function FallbackCampus({ highlights, selected, onSelect, role }) {
   );
 }
 
-function CampusBuildingLabel({ building, onSelect }) {
+function CampusBuildingLabel({ building, onSelect, register }) {
   const labelRef = useRef();
   const anchor = useMemo(
     () => new THREE.Vector3(building.x, building.h + 4.2, building.z),
     [building.h, building.x, building.z],
   );
-  useFrame(({ camera }) => {
-    const element = labelRef.current;
-    if (!element) return;
-    const distance = camera.position.distanceTo(anchor);
-    const fade = THREE.MathUtils.clamp((distance - 80) / 140, 0, 1);
-    element.style.opacity = String(0.15 + fade * 0.85);
-    element.style.pointerEvents = fade > 0.25 ? "auto" : "none";
-  });
+  // 帧循环统一由 CampusBuildingLabels 驱动，这里只负责把 DOM 节点登记进去
+  useEffect(() => {
+    register(building.id, labelRef.current, anchor);
+    return () => register(building.id, null, null);
+  }, [building.id, anchor, register]);
   return (
     <Html
-      position={[building.x, building.h + 4.2, building.z]}
+      position={[
+        building.x + labelOffsetOf(building)[0],
+        building.h + 4.2,
+        building.z + labelOffsetOf(building)[1],
+      ]}
       center
       style={{ pointerEvents: "auto" }}
     >
@@ -778,7 +1115,7 @@ function CampusBuildingLabel({ building, onSelect }) {
           onSelect(building);
         }}
       >
-        <small>{building.id}</small>
+        <small>{campusBadgeOf(building)}</small>
         <b>{building.name}</b>
       </div>
     </Html>
@@ -829,6 +1166,44 @@ function RoomHighlightMarkers({ highlights, liftedBuilding }) {
 }
 
 function CampusBuildingLabels({ highlighted, onSelect }) {
+  const camera = useThree((state) => state.camera);
+  const entries = useRef(new Map());
+  const frameCount = useRef(0);
+
+  const register = useCallback((id, element, anchor) => {
+    if (element) {
+      entries.current.set(id, {
+        el: element,
+        anchor,
+        opacity: null,
+        pointer: null,
+      });
+    } else {
+      entries.current.delete(id);
+    }
+  }, []);
+
+  // 27 个楼栋标签原来各自跑一个 useFrame、并且每帧都写 DOM 样式（27 次/帧的样式抖动）。
+  // 现在合并成一个帧回调，每 3 帧刷新一次，且值没变化就不碰 DOM。
+  useFrame(() => {
+    frameCount.current = (frameCount.current + 1) % 3;
+    if (frameCount.current !== 0) return;
+    for (const entry of entries.current.values()) {
+      const distance = camera.position.distanceTo(entry.anchor);
+      const fade = THREE.MathUtils.clamp((distance - 80) / 140, 0, 1);
+      const opacity = (0.15 + fade * 0.85).toFixed(2);
+      if (entry.opacity !== opacity) {
+        entry.el.style.opacity = opacity;
+        entry.opacity = opacity;
+      }
+      const pointer = fade > 0.25 ? "auto" : "none";
+      if (entry.pointer !== pointer) {
+        entry.el.style.pointerEvents = pointer;
+        entry.pointer = pointer;
+      }
+    }
+  });
+
   return (
     <group>
       {PHOTO_BUILDINGS.map((building) => {
@@ -839,6 +1214,7 @@ function CampusBuildingLabels({ highlighted, onSelect }) {
             key={building.id}
             building={building}
             onSelect={onSelect}
+            register={register}
           />
         );
       })}
@@ -849,6 +1225,7 @@ function CampusBuildingLabels({ highlighted, onSelect }) {
 function OverviewControls({ focusBuilding, enabled }) {
   const controls = useRef();
   const camera = useThree((state) => state.camera);
+  const invalidate = useThree((state) => state.invalidate);
   const flight = useRef(null);
   const lastFocusId = useRef(null);
 
@@ -870,14 +1247,22 @@ function OverviewControls({ focusBuilding, enabled }) {
     if (lastFocusId.current === focusBuilding.id) return;
     lastFocusId.current = focusBuilding.id;
     const building = focusBuilding;
+    // 弹起后的楼层剖面悬停在「原楼顶再高一栋楼」处（见 BuildingInterior），
+    // 镜头若还盯着楼体中心，剖面会被顶出画面，所以对准那叠剖面的几何中心。
+    const stackHeight =
+      Math.max(0, (building.floors || 1) - 1) * (ROOM_FLOOR_H + ROOM_FLOOR_GAP) +
+      ROOM_FLOOR_H;
     const target = new THREE.Vector3(
       building.x,
-      Math.min(building.h * 0.45, 20),
+      building.h + stackHeight / 2,
       building.z,
     );
     const distance = Math.min(
       650,
-      Math.max(140, Math.max(building.w, building.d) * 1.55 + 75 + building.h),
+      Math.max(
+        140,
+        Math.max(building.w, building.d) * 1.55 + 75 + building.h + stackHeight * 0.55,
+      ),
     );
     const azimuth = 0.85;
     const polar = 1.02;
@@ -906,6 +1291,9 @@ function OverviewControls({ focusBuilding, enabled }) {
       camera.position.lerpVectors(fly.from, fly.to, eased);
       controlsImpl.target.lerpVectors(fly.fromTarget, fly.toTarget, eased);
       if (fly.t >= 1) flight.current = null;
+      // demand 模式下渲染循环是「按需触发」的，相机飞行是自己驱动的动画，
+      // 必须在帧内把下一帧续上，否则镜头会停在半路。
+      invalidate();
     }
     controlsImpl.update();
   });
@@ -989,7 +1377,12 @@ function RoomInfoCard({ room, members, role }) {
   return (
     <div className="room-info-card">
       <div className="room-info-head">
-        <span className="eyebrow">ROOM / {room.room_code}</span>
+        <span className="eyebrow">
+          {`ROOM / ${buildingBadge(room.building_code)} · ${
+            /_F(\d+)_(\d+)$/.exec(room.room_code)?.slice(1).join("-") ||
+            room.room_code
+          }`}
+        </span>
         <h3>{room.semantic_name}</h3>
       </div>
       <div className="room-info-meta">
@@ -997,7 +1390,10 @@ function RoomInfoCard({ room, members, role }) {
           {room.floor} 层 · {room.room_type}
         </span>
         <span>
-          {room.building_code} · {room.anchor_world[0].toFixed(1)},{" "}
+          {campusBadgeOf(
+            PHOTO_BUILDINGS.find((item) => item.id === room.building_code),
+          )}{" "}
+          · {room.anchor_world[0].toFixed(1)},{" "}
           {room.anchor_world[2].toFixed(1)}
         </span>
       </div>
@@ -1029,6 +1425,156 @@ function RoomInfoCard({ room, members, role }) {
   );
 }
 
+/**
+ * 阴影按需更新。
+ *
+ * three 默认每帧重算 shadow map；本场景有 900+ 个 castShadow 网格，
+ * 等于每帧多跑一遍全场景正面渲染。相机静止、状态未变时完全没必要重算，
+ * 因此改成按需触发（相机移动 / 高亮变化 / 动画进行中）。
+ */
+function ShadowUpdater({ signature }) {
+  const gl = useThree((state) => state.gl);
+  const camera = useThree((state) => state.camera);
+  const invalidate = useThree((state) => state.invalidate);
+  const last = useRef({ pos: new THREE.Vector3(1e9, 1e9, 1e9), sig: null });
+  const cooldown = useRef(0);
+
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+    return () => {
+      gl.shadowMap.autoUpdate = true;
+    };
+  }, [gl]);
+
+  useFrame(() => {
+    // 首次观察只记录状态，不触发冷却：
+    // 否则页面刚打开就会白白重算 100 帧阴影（正是用户最容易感觉到卡的时刻）。
+    if (last.current.sig === null) {
+      last.current.sig = signature;
+    } else if (last.current.sig !== signature) {
+      last.current.sig = signature;
+      cooldown.current = 100; // 状态切换后楼栋有 ~1.6s 的浮起/染色动画，期间保持重算
+    }
+    const moved = camera.position.distanceToSquared(last.current.pos) > 0.25;
+    if (moved) {
+      last.current.pos.copy(camera.position);
+      cooldown.current = 6;
+    }
+    if (cooldown.current > 0) {
+      cooldown.current -= 1;
+      gl.shadowMap.needsUpdate = true;
+      // 冷却期内的阴影重算同样要靠 invalidate 续帧，否则 demand 模式下
+      // 只会画一次阴影就停，楼还没浮完影子就旧了。
+      invalidate();
+    }
+  });
+  return null;
+}
+
+// 依据 road_graph.json 程序化重建路面（GLB 里的旧路面网格已在载入时剔除）。
+// 这样 3D 路面永远和寻路所用的路网保持一致：路网改了，地面跟着变。
+// 每条边是一段轴对齐直线 → 一个四边形；全部边合并成两个 Mesh（路面 + 中线），draw call = 2。
+function buildRoadGeometry(edges, width, baseY) {
+  const positions = [];
+  const indices = [];
+  let vertexBase = 0;
+  edges.forEach((edge, edgeIndex) => {
+    // 路口处相邻路段会互相叠压，同一高度共面会 z-fighting；
+    // 给每条边一个肉眼不可见的高度错位（≤1.4cm）错开。
+    const y = baseY + (edgeIndex % 13) * 0.0012;
+    const geometry = edge.geometry || [];
+    for (let i = 0; i < geometry.length - 1; i += 1) {
+      const [x1, , z1] = geometry[i];
+      const [x2, , z2] = geometry[i + 1];
+      const dx = x2 - x1;
+      const dz = z2 - z1;
+      const length = Math.hypot(dx, dz);
+      if (length < 0.05) continue;
+      const nx = (-dz / length) * (width / 2);
+      const nz = (dx / length) * (width / 2);
+      positions.push(
+        x1 - nx, y, z1 - nz,
+        x1 + nx, y, z1 + nz,
+        x2 + nx, y, z2 + nz,
+        x2 - nx, y, z2 - nz,
+      );
+      indices.push(
+        vertexBase, vertexBase + 2, vertexBase + 1,
+        vertexBase, vertexBase + 3, vertexBase + 2,
+      );
+      vertexBase += 4;
+    }
+  });
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function GroundRoads() {
+  const geometries = useMemo(
+    () => ({
+      // 高度选 0.18/0.28 的原因：GLB 里所有平铺地貌（主轴铺装 0.085、环形广场
+      // 0.075、边界条 0.13、球场 0.14、湖面 0.11、跑道 0.12）都压在 0.07~0.15，
+      // 旧高度 0.07 会被它们盖住、近距离还会 z-fight 闪烁 —— 路面必须整体抬到
+      // 全部平铺地貌之上；0.28 的中线与路面错开 0.085，远距离也不再闪。
+      road: buildRoadGeometry(ACTIVE_ROAD_EDGES, 5.2, 0.18),
+      mark: buildRoadGeometry(ACTIVE_ROAD_EDGES, 0.42, 0.28),
+    }),
+    [],
+  );
+  useEffect(
+    () => () => {
+      geometries.road.dispose();
+      geometries.mark.dispose();
+    },
+    [geometries],
+  );
+  return (
+    <group>
+      <mesh geometry={geometries.road} receiveShadow raycast={() => {}}>
+        <meshStandardMaterial
+          color="#2c3f46"
+          roughness={0.92}
+          metalness={0}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh geometry={geometries.mark} raycast={() => {}}>
+        <meshBasicMaterial color="#a9b49d" side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+// 路径点批次：把 [[x,y,z], ...] 压平成 Float32Array 交给单个 <points> 绘制。
+// 原来给每个路径点单独画一个球体（几十~上百个 draw call），一个批次视觉一致且恒为 1 draw call。
+function RouteDots({ points, color }) {
+  const flat = useMemo(() => Float32Array.from(points.flat()), [points]);
+  return (
+    <points>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={flat.length / 3}
+          array={flat}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        color={color}
+        size={1.6}
+        sizeAttenuation
+        transparent
+        opacity={0.9}
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
 function CampusScene({
   role,
   highlights,
@@ -1041,10 +1587,23 @@ function CampusScene({
   showRoute,
   routeNodeIds,
   routeIndoorPoints,
+  routeLegInfo,
+  routeOriginPoint,
   showLabels,
   weather,
   showRooms,
 }) {
+  // 弹起期间锁定选楼：当前楼栋没有落回之前，点击其他楼栋一律忽略。
+  // 否则转视角时松手落在别的楼上，就会把「正在看的那栋」切成新楼、原楼跟着落回，
+  // 整个查看过程被打断。必须先点当前楼栋让它落回，才能再点下一栋。
+  const handleSceneSelect = useCallback(
+    (building) => {
+      if (liftedBuilding && building && building.id !== liftedBuilding) return;
+      onSelect(building);
+    },
+    [liftedBuilding, onSelect],
+  );
+
   const route = useMemo(() => {
     if (!showRoute) return [];
     const ids = routeNodeIds?.length
@@ -1060,31 +1619,66 @@ function CampusScene({
           "libraryWest",
           "north",
         ];
-    const points = [];
-    for (let index = 0; index < ids.length - 1; index += 1) {
-      const from = ids[index];
-      const to = ids[index + 1];
-      const edge = ACTIVE_ROAD_EDGES.find(
-        (item) =>
-          (item.from === from && item.to === to) ||
-          (item.from === to && item.to === from),
-      );
-      if (!edge) continue;
-      const geometry =
-        edge.from === from ? edge.geometry : [...edge.geometry].reverse();
-      geometry.forEach((point, pointIndex) => {
-        if (index > 0 && pointIndex === 0) return;
-        points.push([point[0], 0.48, point[2]]);
-      });
-    }
+    const points = pathPointsFromIds(ids);
     for (const indoorPoint of routeIndoorPoints || []) {
       points.push([indoorPoint[0], indoorPoint[1], indoorPoint[2]]);
     }
     return points;
   }, [showRoute, routeNodeIds, routeIndoorPoints]);
+
+  // 课表多段路径：后端每个 leg 带 node_ids（本段室外节点）/ indoor_pts（进教室的室内点）/
+  // indoor_line（同楼换教室直连线）。逐段展开成折线并分配不同颜色；
+  // 第一段把宿舍房间门口（routeOriginPoint）接进折线头部，路径从房间而不是楼门开始。
+  const routeSegments = useMemo(() => {
+    if (!showRoute) return null;
+    const legs = (routeLegInfo || []).filter(
+      (leg) =>
+        leg &&
+        !leg.indoor_hop &&
+        ((leg.node_ids && leg.node_ids.length > 1) || leg.indoor_line),
+    );
+    if (legs.length < 2) return null;
+    const segments = [];
+    legs.forEach((leg, index) => {
+      let pts = [];
+      if (leg.node_ids && leg.node_ids.length > 1) {
+        pts = pathPointsFromIds(leg.node_ids);
+        if (index === 0 && routeOriginPoint) {
+          pts = [[routeOriginPoint[0], 1.0, routeOriginPoint[2]], ...pts];
+        }
+        if (leg.indoor_pts && leg.indoor_pts.length) {
+          pts = pts.concat(leg.indoor_pts);
+        }
+      } else if (leg.indoor_line) {
+        pts = leg.indoor_line.map((p) => [p[0], 1.0, p[2]]);
+      }
+      if (pts.length > 1) {
+        segments.push({
+          color: ROUTE_LEG_COLORS[index % ROUTE_LEG_COLORS.length],
+          points: pts,
+        });
+      }
+    });
+    return segments.length ? segments : null;
+  }, [showRoute, routeLegInfo, routeOriginPoint]);
+
+  // 路径点批次：把 [[x,y,z], ...] 压平成 Float32Array，交给单个 <points> 绘制
+  // （原整条路径共用一个批次；现在多段路径由 RouteDots 每段一个批次，段数 ≤4 不构成压力）
+
+  // 阴影贴图只在「相机移动」或「高亮/选中状态变化」时需要重算。
+  // 场景里有 900+ 个投影网格，默认每帧都会重跑一遍阴影 pass（相当于 draw call 翻倍），
+  // 而首页在静止观看时相机并不动，这部分是纯浪费。
+  const shadowSignature = useMemo(
+    () =>
+      `${selected?.id || ""}|${liftedBuilding || ""}|${Object.keys(highlights)
+        .sort()
+        .join(",")}`,
+    [selected, liftedBuilding, highlights],
+  );
   return (
     <>
       <color attach="background" args={["#07131f"]} />
+      <GroundRoads />
       <fog
         attach="fog"
         args={[
@@ -1103,18 +1697,19 @@ function CampusScene({
         intensity={weather === "rain" ? 1.25 : 2.4}
         color={weather === "rain" ? "#a8c4d7" : "#ffe6bd"}
         castShadow
-        shadow-mapSize={[2048, 2048]}
+        shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-290}
         shadow-camera-right={290}
         shadow-camera-top={240}
         shadow-camera-bottom={-240}
       />
+      <ShadowUpdater signature={shadowSignature} />
       <ModelErrorBoundary
         fallback={
           <FallbackCampus
             highlights={highlights}
             selected={selected}
-            onSelect={onSelect}
+            onSelect={handleSceneSelect}
             role={role}
           />
         }
@@ -1134,7 +1729,7 @@ function CampusScene({
             selected={selected}
             liftedBuilding={liftedBuilding}
             interactive={!walkMode}
-            onSelect={onSelect}
+            onSelect={handleSceneSelect}
             onRoomSelect={onRoomSelect}
             selectedRoom={selectedRoom}
             showRooms={showRooms}
@@ -1142,31 +1737,52 @@ function CampusScene({
         </Suspense>
       </ModelErrorBoundary>
       {liftedBuilding && selected?.id === liftedBuilding && showRooms && (
-        <BuildingInterior
-          building={selected}
-          highlights={highlights}
-          selectedRoom={selectedRoom}
-          onRoomSelect={onRoomSelect}
-        />
+        <>
+          <BuildingInterior
+            building={selected}
+            highlights={highlights}
+            selectedRoom={selectedRoom}
+            onRoomSelect={onRoomSelect}
+          />
+          {/* 弹起后外壳整体隐藏，「再次点击这栋楼让它落回」就失去了受力面。
+              这里补一个与楼体等高的透明拾取体（opacity=0 但仍参与 Raycaster）：
+              点它 = 点这栋楼 → 落回。房间盒在同一条射线上离相机更近，
+              所以点房间依旧是选房间，不会被它抢走。 */}
+          {!walkMode && (
+            <mesh
+              position={[selected.x, selected.h / 2, selected.z]}
+              onClick={(event) => {
+                event.stopPropagation();
+                handleSceneSelect(selected);
+              }}
+            >
+              <boxGeometry args={[selected.w + 2, selected.h, selected.d + 2]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+          )}
+        </>
       )}
       <RoomHighlightMarkers
         highlights={highlights}
         liftedBuilding={liftedBuilding}
       />
       {showLabels && (
-        <CampusBuildingLabels highlighted={selected} onSelect={onSelect} />
+        <CampusBuildingLabels highlighted={selected} onSelect={handleSceneSelect} />
       )}
       <group>
-        {route.length > 1 && (
-          <Line points={route} color={COLORS.route} lineWidth={3.4} />
-        )}
-        {route.length > 1 &&
-          route.map((point, i) => (
-            <mesh key={`route-${i}`} position={point}>
-              <sphereGeometry args={[0.48, 12, 12]} />
-              {mat(COLORS.route, 0.55, 0.2)}
-            </mesh>
-          ))}
+        {routeSegments
+          ? routeSegments.map((seg, index) => (
+              <group key={`route-seg-${index}`}>
+                <Line points={seg.points} color={seg.color} lineWidth={3.4} />
+                <RouteDots points={seg.points} color={seg.color} />
+              </group>
+            ))
+          : route.length > 1 && (
+              <>
+                <Line points={route} color={COLORS.route} lineWidth={3.4} />
+                <RouteDots points={route} color={COLORS.route} />
+              </>
+            )}
       </group>
       {weather === "rain" && <Rain />}
       {weather === "fog" && (
@@ -1181,11 +1797,14 @@ function CampusScene({
 
 function Rain() {
   const ref = useRef();
+  const invalidate = useThree((state) => state.invalidate);
   useFrame((_, delta) => {
     if (ref.current) {
       ref.current.rotation.y += delta * 0.03;
       ref.current.position.y = Math.sin(performance.now() / 950) * 1.2;
     }
+    // 雨是持续动画：demand 模式下自己续帧（切回晴天该组件卸载，自动停）。
+    invalidate();
   });
   const drops = useMemo(
     () =>
@@ -1231,6 +1850,8 @@ function App() {
     walking_minutes: 0,
   });
   const [routeStops, setRouteStops] = useState([]);
+  // 逐段路线（from→to + 距离/时间），由后端 route_stops 提供
+  const [routeLegs, setRouteLegs] = useState([]);
   const [queryHighlights, setQueryHighlights] = useState([]);
   const [roomHighlights, setRoomHighlights] = useState({});
   const [roomMembers, setRoomMembers] = useState(null);
@@ -1287,11 +1908,22 @@ function App() {
       if (isRoute && payload.route) setRouteInfo(payload.route);
       else setRouteInfo({ distance_m: 0, walking_minutes: 0 });
       setRouteStops(isRoute ? payload.stops || [] : []);
+      setRouteLegs(isRoute ? payload.route_stops || payload.route?.legs || [] : []);
       setShowRoute(isRoute);
       if (payload.highlight?.[0]) {
         const building =
           PHOTO_BUILDINGS.find((b) => b.id === payload.highlight[0]) || null;
-        if (building) handleSelectBuilding(building);
+        if (building) {
+          // 问答触发的选中必须是「强制切换」，不能复用点击楼的 toggle：
+          // toggle 在「这栋楼已弹起」时会把楼收回去 —— 连续两次问
+          // 「我的宿舍在哪？」第二次楼就落地、宿舍高亮直接消失。
+          setWalkMode(false);
+          setSelected(building);
+          setSelectedRoom(null);
+          setQueryRoom(null);
+          setRoomMembers(null);
+          setActiveTab("rooms");
+        }
       }
       if (payload.intent === "dormitory" && payload.dorm_members) {
         const dormCode =
@@ -1319,7 +1951,11 @@ function App() {
       return;
     }
     if (selected?.id === building.id && activeTab === "rooms") {
+      // 落回 = 彻底收起：只切页签不清 selected 的话，弹起循环里
+      // isSelected 仍为 true，外壳会停在「地面 + 5.5m 选中抬升」处悬空，
+      // 直到点其他楼把 selected 换走才真正落地。
       setActiveTab("overview");
+      resetSelection();
       return;
     }
     setWalkMode(false);
@@ -1362,6 +1998,10 @@ function App() {
     setRoomMembers(null);
   }
 
+  // 「房间 LOD2」页签下选中的楼栋即处于弹起查看态；这是弹起唯一的判定口径，
+  // 场景点击的锁定逻辑（见 CampusScene.handleSceneSelect）也依赖它。
+  const liftedBuilding =
+    selected && activeTab === "rooms" ? selected.id : null;
   const selectedHighlight = selected ? highlights[selected.id] : null;
   async function loadSessionHighlights(nextUser) {
     setUser(nextUser);
@@ -1551,19 +2191,19 @@ function App() {
             <div className="data-grid">
               <div>
                 <span>建筑单元</span>
-                <b>21</b>
+                <b>{campusLayout.buildings.length}</b>
               </div>
               <div>
                 <span>房间锚点</span>
-                <b>630</b>
+                <b>{roomAnchors.rooms.length}</b>
               </div>
               <div>
                 <span>路网节点</span>
-                <b>48</b>
+                <b>{roadGraph.nodes.length}</b>
               </div>
               <div>
-                <span>参考视角</span>
-                <b>16</b>
+                <span>路网边</span>
+                <b>{roadGraph.edges.length}</b>
               </div>
             </div>
             <div className="data-bar">
@@ -1661,16 +2301,34 @@ function App() {
                 <CanvasFallback error={error} retry={retry} />
               )}
             >
+              {/* frameloop="demand"：静止时一格帧都不画。
+                  实测（静止 6s 采样）：改前 rAF 60.5fps、每帧 1336 次 draw call、
+                  主线程占用 59.2%，其中 52.6% 是 JS —— 全部烧在 three.js 的
+                  渲染管线上（projectObject / setProgram / updateMatrixWorld / sort）。
+                  也就是说卡不卡跟「楼房有多少面」关系不大，跟「每帧都重画一遍」关系最大。
+                  drei 的 OrbitControls 已在 change 事件里 invalidate()，所以
+                  拖拽/滚轮的阻尼惯性照样连续；只有下面这些自写动画需要自己续帧。 */}
               <Canvas
+                frameloop="demand"
                 shadows
                 dpr={[1, 1.35]}
                 gl={{ antialias: true, powerPreference: "high-performance" }}
-                camera={{ far: 3200 }}
+                camera={{ far: 3200, near: 0.6 }}
+                onCreated={({ gl }) => {
+                  // 供 CDP 内存探针读取 renderer.info（geometries/textures/programs），
+                  // 判断交互时内存增长是 JS 堆还是 WebGL 资源泄漏。
+                  window.__gl = gl;
+                }}
               >
                 <PerspectiveCamera
                   makeDefault
                   position={[325, 285, -420]}
                   fov={walkMode ? 66 : 48}
+                  // 俯瞰机位距校园中心约 600m：默认 near=0.1 时深度缓冲在该距离的
+                  // 分辨率约 ±0.2m，地面（y=0）与新路面（y=0.18）会打架 —— 表现为
+                  // 一点击触发重绘、路面就闪烁。俯瞰把 near 提到 0.6（分辨率×6），
+                  // 漫游贴墙时仍用 0.1 避免近处裁切。
+                  near={walkMode ? 0.1 : 0.6}
                   far={3200}
                 />
                 {!walkMode && (
@@ -1700,9 +2358,7 @@ function App() {
                   role={role}
                   highlights={highlights}
                   selected={selected}
-                  liftedBuilding={
-                    selected && activeTab === "rooms" ? selected.id : null
-                  }
+                  liftedBuilding={liftedBuilding}
                   walkMode={walkMode}
                   onSelect={handleSelectBuilding}
                   onRoomSelect={handleRoomSelect}
@@ -1710,6 +2366,8 @@ function App() {
                   showRoute={showRoute}
                   routeNodeIds={routeNodeIds}
                   routeIndoorPoints={routeInfo.indoor_points || []}
+                  routeLegInfo={routeLegs}
+                  routeOriginPoint={routeInfo.origin_point || null}
                   showLabels={!walkMode}
                   weather={weather}
                   showRooms={activeTab === "rooms"}
@@ -1732,9 +2390,15 @@ function App() {
               </div>
             )}
             {!walkMode && (
-              <div className="camera-hint">
-                按住左键旋转视角 · 按住右键移动画面 · 滚轮缩放 ·
-                点击楼栋切换中心
+              <div
+                className={`camera-hint${liftedBuilding ? " locked" : ""}`}
+                onClick={
+                  liftedBuilding ? () => handleSelectBuilding(selected) : null
+                }
+              >
+                {liftedBuilding
+                  ? `${selected?.name || "当前楼栋"} 已弹起 · 再次点击该楼栋（或此处）即可落回 · 落回前点其他楼栋不会弹起`
+                  : "按住左键旋转视角 · 按住右键移动画面 · 滚轮缩放 · 点击楼栋切换中心"}
               </div>
             )}
             <div className="viewport-hud">
@@ -1768,7 +2432,7 @@ function App() {
                 <div className="selected-card-top">
                   <div>
                     <span className="eyebrow">
-                      SELECTED BUILDING / {selected.id}
+                      SELECTED BUILDING / {campusBadgeOf(selected)}
                     </span>
                     <h3>{selected.name}</h3>
                   </div>
@@ -1917,7 +2581,35 @@ function App() {
               </div>
             </div>
             <div className="route-list">
-              {routeStops.length === 0 ? (
+              {routeLegs.length > 0 ? (
+                routeLegs.map((leg, index) => (
+                  <div className="route-step" key={`${leg.to}-${index}`}>
+                    <span
+                      className="route-node"
+                      style={
+                        routeLegs.length > 1
+                          ? {
+                              background:
+                                ROUTE_LEG_COLORS[
+                                  index % ROUTE_LEG_COLORS.length
+                                ],
+                            }
+                          : undefined
+                      }
+                    />
+                    <div>
+                      <b>
+                        {leg.from} → {leg.to}
+                      </b>
+                      <small>
+                        {leg.reason ? `${leg.reason} · ` : ""}
+                        约 {leg.distance_m} m · 步行 {leg.walking_minutes} 分钟
+                        {leg.indoor ? " · 含室内段" : ""}
+                      </small>
+                    </div>
+                  </div>
+                ))
+              ) : routeStops.length === 0 ? (
                 <div className="route-empty">暂时没有需要展示的路径段。</div>
               ) : (
                 routeStops.map((stop, index, all) => (
@@ -1939,6 +2631,12 @@ function App() {
                 ))
               )}
             </div>
+            {routeLegs.length > 0 && (
+              <div className="route-total">
+                全程 {routeInfo.distance_m} m · 约 {routeInfo.walking_minutes} 分钟 ·{" "}
+                {routeLegs.length} 段
+              </div>
+            )}
             <button
               className="route-action"
               onClick={() => setShowRoute(!showRoute)}
@@ -1985,8 +2683,21 @@ function App() {
               <span className="tiny-label">16 个视角</span>
             </div>
             <div className="reference-grid">
-              <img src="/assets/photo-overview.jpg" alt="校园沙盘航拍参考" />
-              <img src="/assets/photo-sports.jpg" alt="校园运动场参考" />
+              {/* 这两张是实景参考图，原图 8.4MB / 10.9MB 且未懒加载，
+                  打开首页就会同步下载，是「3D 页加载慢」的一大来源。
+                  这里改为懒加载 + 异步解码，避免和 glb 抢带宽/主线程。 */}
+              <img
+                src="/assets/photo-overview.jpg"
+                alt="校园沙盘航拍参考"
+                loading="lazy"
+                decoding="async"
+              />
+              <img
+                src="/assets/photo-sports.jpg"
+                alt="校园运动场参考"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <span className="reference-note">
               照片反推数据为多视角估算，不标作官方实测值

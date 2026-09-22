@@ -670,6 +670,18 @@ button {
   white-space: nowrap;
   pointer-events: none;
 }
+/* 楼栋弹起期间：点选被锁定，提示条变成「点我落回」的按钮并高亮 */
+.camera-hint.locked {
+  color: #ffe1a8;
+  background: rgba(46, 33, 4, 0.82);
+  border-color: rgba(245, 207, 100, 0.42);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.camera-hint.locked:hover {
+  background: rgba(70, 50, 6, 0.92);
+  border-color: rgba(245, 207, 100, 0.75);
+}
 .eyebrow {
   color: #80c9ae;
   font-size: 8px;
@@ -901,6 +913,18 @@ button {
   color: #ffe7a3;
   border-color: rgba(245, 207, 100, 0.9);
   background: rgba(74, 56, 10, 0.9);
+}
+.floor-tag {
+  padding: 1px 7px;
+  color: #cfe6dc;
+  background: rgba(6, 24, 30, 0.9);
+  border: 1px solid rgba(139, 216, 176, 0.38);
+  border-radius: 999px;
+  font:
+    8px "DM Mono",
+    monospace;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 .campus-building-label {
   display: flex;
@@ -1152,8 +1176,18 @@ button {
 }
 .route-step small {
   margin-top: 3px;
-  color: #6d8987;
-  font-size: 8px;
+  color: #85a19d;
+  font-size: 8.5px;
+  line-height: 1.5;
+}
+.route-total {
+  margin: 6px 13px 0;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: rgba(245, 207, 100, 0.09);
+  border: 1px solid rgba(245, 207, 100, 0.22);
+  color: #e6d9a6;
+  font-size: 8.5px;
 }
 .route-action {
   margin: 8px 12px 12px;
